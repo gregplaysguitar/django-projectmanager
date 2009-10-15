@@ -1,0 +1,3 @@
+.DS_Store
+*.sqlite
+./local_settings.py

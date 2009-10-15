@@ -1,0 +1,116 @@
+{% extends "admin/base_site.html" %}
+
+{% block title %}Tasks for {% firstof project "all projects" %} &mdash; {{block.super}}{% endblock %}
+
+
+{% block header %}
+Tasks for {% firstof project "all projects" %}
+{% endblock %}
+
+
+{% block content %}
+
+
+
+
+<div class="tasks-leftcol">
+
+	
+	<div class="pending-tasks">
+		<h3>Pending tasks</h3>
+		<form action="." method="post">
+		
+		{{ task_list_formset.management_form }}
+		
+		<ul>
+			{% for form in task_list_formset.forms %}
+			 <li>
+				{{ form.id }}
+				{{ form.completed }}
+				<label for="{{ form.completed.auto_id }}">
+					{{ form.instance.task }}
+				</label>
+				<br>
+				<span class="meta">
+					{% if not project %}
+					{{ form.instance.project }},
+					{% endif %}
+					added {{ form.instance.creation_date|date:"d M" }}
+					<a href="/projectmanager/task/{{ form.instance.id }}/">edit</a>
+				</span>
+		
+			</li>
+			{% empty %}
+			<li>No tasks found</li>
+			{% endfor %}
+		</ul>
+		<input type="submit" value="Save">
+		</form>
+	</div>
+
+	
+	<div class="add-task form">
+		<h3>Add a task</h3>
+		<ul>
+			<form method="post" action=".">
+			
+				{{ task_form.as_ul }}
+				<li>
+					<input type="submit" value="Add" class="submit">
+				</li>
+			</form>
+		</ul>
+	</div>
+
+	
+	<div class="completed-tasks">	
+		<h3>Last 10 completed tasks</h3>
+		<ul>
+			{% for task in completed_task_list|slice:":10" %}
+			<li>
+				{{ task.task }} - completed {{ form.instance.completion_date|date:"d M, j:i a" }}
+				<a href="/projectmanager/task/{{ form.instance.id }}/">edit</a>
+			</li>
+			{% empty %}
+			<li>No tasks found</li>
+			{% endfor %}
+		</ul>
+	</div>
+
+</div>
+
+
+<div class="sidebar tasks-rightcol">
+
+	<h3>Filter by project</h3>
+	<ul class="project list">
+		<li><a href="{% url projectmanager.views.tasks %}">All</a></li>
+		{% for project in project_list %}
+		<li {% if project.pending_task_count %}class="has-pending"{% endif %}>
+			<a href="{% url projectmanager.views.tasks project.pk %}">
+				{{ project }}
+				{% if project.pending_task_count %}
+				({{ project.pending_task_count }})
+				{% endif %}
+			</a>
+		</li>
+		{% endfor %}
+	</ul>
+
+
+</div>
+
+
+
+
+{% endblock %}
+
+
+{% block extrastyle %}
+{{ block.super }}
+<script type="text/javascript">
+$(function() {
+	$('#id_addtask-task').focus();
+});
+</script>
+{% endblock %}

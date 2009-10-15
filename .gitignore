@@ -1,0 +1,5 @@
+old.zip
+db/greg.sqlite
+demo/local_settings.py
+demo/templates/projectmanager
+*.pyc
