@@ -22,7 +22,7 @@ class Project(models.Model):
 	description = models.TextField(blank=True)
 	completed = models.BooleanField()
 	billable = models.BooleanField(default=1)
-	hourly_rate = models.DecimalField(max_digits=4, decimal_places=2, default=80)
+	hourly_rate = models.DecimalField(max_digits=10, decimal_places=2, default=80)
 	creation_date = models.DateTimeField(auto_now_add=True)
 	
 	objects = ForUserManager()
@@ -181,8 +181,9 @@ class Invoice(models.Model):
 	def total(self):
 		return round(float(self.subtotal()) * 1.125, 2)
 	
+	@models.permalink
 	def get_absolute_url(self):
-		return "/admin/projectmanager/invoice/%d/" % self.pk
+		return ('projectmanager.views.invoice', [self.pk])
 
 
 
