@@ -22,7 +22,7 @@ if settings.DEBUG:
 
 urlpatterns += patterns('',
     # Uncomment the next line to enable the admin:
-    (r'^(.*)', admin.site.root),
+    (r'', include(admin.site.urls)),
 
 )
 

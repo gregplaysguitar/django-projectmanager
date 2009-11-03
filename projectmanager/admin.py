@@ -2,6 +2,7 @@ from projectmanager.models import *
 from django.contrib import admin
 from django.utils.safestring import mark_safe
 from admin_restricted import RestrictedByUsers
+from django.core import urlresolvers
 
 
 class ProjectExpenseInline(admin.TabularInline):
@@ -47,7 +48,7 @@ class ProjectAdmin(RestrictedByUsers):
 
     def create_invoice_for_selected(self, request, queryset):
         invoice = create_invoice_for_projects(queryset)
-        return HttpResponseRedirect(invoice.get_absolute_url())
+        return HttpResponseRedirect(urlresolvers.reverse('admin:projectmanager_invoice_change', args=(invoice.id,)))
         
     create_invoice.short_description = 'Invoice'                
     create_invoice.allow_tags = True
