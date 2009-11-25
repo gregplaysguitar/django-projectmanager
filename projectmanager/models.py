@@ -4,7 +4,7 @@ from string_utils import smart_truncate
 from django.http import HttpResponseRedirect
 from django.db.models.signals import pre_save, post_save
 from django.contrib.auth.models import User
-from django.db.models import Q
+from django.db.models import Q, Sum
 
 
 class ForUserManager(models.Manager):
@@ -39,6 +39,9 @@ class Project(models.Model):
 	def total_time(self):
 		delta = sum((item.total_time() for item in ProjectTime.objects.filter(project=self.id)), datetime.timedelta())
 		return (delta.days * 24 + delta.seconds / 3600) + (((0.0 + delta.seconds / 60) % 60) / 60)
+	
+	def total_estimated_hours(self):
+		return self.task_set.all().aggregate(Sum('estimated_hours'))['estimated_hours__sum'] or ''
 	
 	"""
 	def time_invoiced(self):
@@ -87,8 +90,10 @@ class Project(models.Model):
 			)
 		"""
 		return new_invoice
-		
-		
+	
+	@models.permalink
+	def projecttime_summary_url(self):
+		return ('projectmanager.views.projecttime_summary', (self.pk, ), )
 	
 	class Meta:
 		ordering = ('client', 'name',)

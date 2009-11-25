@@ -1,6 +1,6 @@
 from projectmanager.models import Project, ProjectTime, Task, Invoice
 from django.shortcuts import render_to_response, get_object_or_404
-from django.http import HttpResponseRedirect
+from django.http import HttpResponseRedirect, HttpResponse
 from datetime import time as time_module, datetime, timedelta
 from django.contrib.auth.decorators import login_required
 from django.core.urlresolvers import reverse
@@ -15,6 +15,7 @@ import ho.pisa as pisa
 import cStringIO as StringIO
 import cgi
 
+import csv
 
 from forms import ProjectTimeForm, AddTaskForm
 
@@ -93,11 +94,18 @@ def tasks(request, project_pk=None):
     pending_task_list = Task.objects.for_user(request.user).filter(completed=False)
     project_list = Project.objects.for_user(request.user).filter(completed=False)
     
+    if not project_pk and 'tasks_latest_project_pk' in request.session:
+        #print reverse('view-tasks', int(request.session['tasks_latest_project_pk']))
+        return HttpResponseRedirect("/tasks/%s/" % request.session['tasks_latest_project_pk'])
+    elif project_pk == 'all':
+        project_pk = None
+    
     if project_pk:
         project = get_object_or_404(Project, pk=project_pk)
         completed_task_list = completed_task_list.filter(project=project)
         pending_task_list = pending_task_list.filter(project=project)
         initial = {'project': project.pk}
+        request.session['tasks_latest_project_pk'] = project.pk
     else:
         project = None
         initial = {}
@@ -165,3 +173,31 @@ def invoice(request, invoice_id, type='html'):
         return render_to_pdf('projectmanager/pdf/invoice.html', data)
     else:
         return render_to_response('projectmanager/pdf/invoice.html', data, context_instance=RequestContext(request))
+
+
+
+@login_required
+def projecttime_summary(request, project_pk):
+    project = get_object_or_404(Project, pk=project_pk)
+
+    response = HttpResponse()
+    
+    writer = csv.writer(response)
+    writer.writerow([
+        'Time',
+        'Description',
+        'Date',
+    ])
+    
+    for projecttime in project.projecttime_set.all().order_by('start'):
+        print projecttime.description
+        writer.writerow([
+            "%sh" % projecttime.total_time(),
+            unicode(projecttime.description),
+            projecttime.start,
+        ])
+    
+    
+    response['Content-Type'] = 'text/csv'
+    response['Content-Disposition'] = 'attachment; filename="projecttime_summary_%s.csv"' % project.slug
+    return response

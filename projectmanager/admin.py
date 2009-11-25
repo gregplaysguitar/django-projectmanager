@@ -32,7 +32,8 @@ class ProjectAdmin(RestrictedByUsers):
         print obj.users.all()
         """
     
-    list_display = ('client', 'name', 'creation_date', 'total_time', 'hourly_rate', 'total_expenses', 'total_cost', 'total_invoiced', 'total_to_invoice', 'approx_hours_to_invoice', 'completed')
+#    list_display = ('client', 'name', 'creation_date', 'total_time', 'hourly_rate', 'total_expenses', 'total_cost', 'total_invoiced', 'total_to_invoice', 'approx_hours_to_invoice', 'completed')
+    list_display = ('client', 'name', 'total_estimated_hours', 'total_time', 'total_invoiced', 'total_to_invoice', 'approx_hours_to_invoice', 'completed', 'links', )
     list_display_links = ('client', 'name')
     list_filter = ('completed', 'creation_date', 'billable')
     search_fields = ('name', 'client', 'slug', 'description', 'projectexpense__description')
@@ -46,12 +47,19 @@ class ProjectAdmin(RestrictedByUsers):
     def create_invoice(self, instance):
         return u'<a href="/create_invoice_for_project/%d/">create</a>' % (instance.id)
 
+    def links(self, instance):
+        return (u'<a href="%s?project__id__exact=%s">view</a> ' % (urlresolvers.reverse('admin:projectmanager_projecttime_changelist'), instance.pk)) + \
+               (u'<a href="%s">csv</a> ' % instance.projecttime_summary_url())
+
+
     def create_invoice_for_selected(self, request, queryset):
         invoice = create_invoice_for_projects(queryset)
         return HttpResponseRedirect(urlresolvers.reverse('admin:projectmanager_invoice_change', args=(invoice.id,)))
         
     create_invoice.short_description = 'Invoice'                
     create_invoice.allow_tags = True
+    links.short_description = ''                
+    links.allow_tags = True
 
 
 admin.site.register(Project, ProjectAdmin)

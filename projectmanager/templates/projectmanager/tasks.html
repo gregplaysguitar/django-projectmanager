@@ -35,6 +35,9 @@ Tasks for {% firstof project "all projects" %}
 					{% if not project %}
 					{{ form.instance.project }},
 					{% endif %}
+					{% if form.instance.estimated_hours %}
+					<strong>{{ form.instance.estimated_hours }}h</strong>,
+					{% endif %}
 					added {{ form.instance.creation_date|date:"d M" }}
 					<a href="/projectmanager/task/{{ form.instance.id }}/">edit</a>
 				</span>
@@ -64,17 +67,40 @@ Tasks for {% firstof project "all projects" %}
 
 	
 	<div class="completed-tasks">	
-		<h3>Last 10 completed tasks</h3>
+		{% if project %}
+		<h3>Completed tasks</h3>
 		<ul>
-			{% for task in completed_task_list|slice:":10" %}
-			<li>
-				{{ task.task }} - completed {{ form.instance.completion_date|date:"d M, j:i a" }}
-				<a href="/projectmanager/task/{{ form.instance.id }}/">edit</a>
+			{% for task in completed_task_list %}
+			<li title="{{ task.task }}">
+				{{ task.task|truncatewords:"5" }}
+				<span class="meta">
+                    {% if task.estimated_hours %}
+                    <strong>{{ task.estimated_hours }}h</strong>,
+                    {% endif %}
+                    completed {{ task.completion_date|date:"d M" }}
+                    <a href="/projectmanager/task/{{ task.id }}/">edit</a>
+				</span>
 			</li>
 			{% empty %}
 			<li>No tasks found</li>
 			{% endfor %}
 		</ul>
+		{% else %}
+		<h3>Last 10 completed tasks</h3>
+		<ul>
+			{% for task in completed_task_list|slice:":10" %}
+			<li>
+				{{ task.task|truncatewords:"5" }}
+				<span class="meta">
+                     completed {{ task.completion_date|date:"d M" }}
+                    <a href="/projectmanager/task/{{ task.id }}/">edit</a>
+                </span>
+			</li>
+			{% empty %}
+			<li>No tasks found</li>
+			{% endfor %}
+		</ul>
+		{% endif %}
 	</div>
 
 </div>
@@ -84,7 +110,7 @@ Tasks for {% firstof project "all projects" %}
 
 	<h3>Filter by project</h3>
 	<ul class="project list">
-		<li><a href="{% url projectmanager.views.tasks %}">All</a></li>
+		<li><a href="{% url projectmanager.views.tasks 'all' %}">All</a></li>
 		{% for project in project_list %}
 		<li {% if project.pending_task_count %}class="has-pending"{% endif %}>
 			<a href="{% url projectmanager.views.tasks project.pk %}">

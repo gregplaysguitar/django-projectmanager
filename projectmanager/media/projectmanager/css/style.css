@@ -161,6 +161,7 @@ div.sidebar {
 	left: 0;
 	top: 0;
 }
+.completed-tasks ul li .meta,
 .pending-tasks ul li .meta {
 	font-size: 80%;
 	color: #aaa;
