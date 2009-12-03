@@ -17,7 +17,7 @@ Tasks for {% firstof project "all projects" %}
 
 	
 	<div class="pending-tasks">
-		<h3>Pending tasks</h3>
+		<h3>Pending tasks for {% firstof project "all projects" %}</h3>
 		<form action="." method="post">
 		
 		{{ task_list_formset.management_form }}
@@ -68,7 +68,7 @@ Tasks for {% firstof project "all projects" %}
 	
 	<div class="completed-tasks">	
 		{% if project %}
-		<h3>Completed tasks</h3>
+		<h3>Completed tasks for {{ project }}</h3>
 		<ul>
 			{% for task in completed_task_list %}
 			<li title="{{ task.task }}">
@@ -134,9 +134,11 @@ Tasks for {% firstof project "all projects" %}
 
 {% block extrastyle %}
 {{ block.super }}
+{% if project %}
 <script type="text/javascript">
 $(function() {
 	$('#id_addtask-task').focus();
 });
 </script>
+{% endif %}
 {% endblock %}

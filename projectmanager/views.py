@@ -90,7 +90,7 @@ def project_time(request, current_day = False, start_hour = 8, end_hour = 21):
     
 @login_required
 def tasks(request, project_pk=None):
-    completed_task_list = Task.objects.for_user(request.user).filter(completed=True)
+    completed_task_list = Task.objects.for_user(request.user).filter(completed=True).order_by('-completion_date')
     pending_task_list = Task.objects.for_user(request.user).filter(completed=False)
     project_list = Project.objects.for_user(request.user).filter(completed=False)
     
