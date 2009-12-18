@@ -32,6 +32,9 @@ class ProjectAdmin(RestrictedByUsers):
         print obj.users.all()
         """
     
+    def make_completed(self, request, queryset):
+        queryset.update(completed=True)
+    
 #    list_display = ('client', 'name', 'creation_date', 'total_time', 'hourly_rate', 'total_expenses', 'total_cost', 'total_invoiced', 'total_to_invoice', 'approx_hours_to_invoice', 'completed')
     list_display = ('client', 'name', 'total_estimated_hours', 'total_time', 'total_invoiced', 'total_to_invoice', 'approx_hours_to_invoice', 'completed', 'links', )
     list_display_links = ('client', 'name')
@@ -41,7 +44,7 @@ class ProjectAdmin(RestrictedByUsers):
         'slug': ('client', 'name',)
     }
     inlines = [ProjectExpenseInline,TaskInline,]
-    actions = ['create_invoice_for_selected', ]
+    actions = ['create_invoice_for_selected', 'make_completed']
     exclude = ('owner', )
     
     def create_invoice(self, instance):
@@ -89,6 +92,7 @@ class InvoiceAdmin(RestrictedByUsers):
     list_filter = ('projects', 'creation_date', 'paid')
     inlines = [InvoiceRowInline,]
     actions = ['make_paid',]
+    search_fields = ['client', 'email', 'description', 'address', 'invoicerow__detail']
     
     def make_paid(self, request, queryset):
         queryset.update(paid=True)

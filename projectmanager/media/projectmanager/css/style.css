@@ -21,13 +21,12 @@
 .project.list li {
     margin: 1px 0;
     list-style: none;
-}
-.project.list li.has-pending {
-    font-weight: bold;
+    
 }
 .project.list li a {
     padding: 2px 10px;
     display: block;
+    color: #aaa;
 }
 .project.list li a:hover {
     background: #fff;
@@ -36,6 +35,15 @@
 .project.list li a.current:hover {
     font-weight: bold;
     background: none;
+}
+.project.list li.has-pending {
+    font-weight: bold;
+}
+.project.list li.has-pending a {
+    color: #5B80B2;
+}
+.project.list li a.current:before {
+    content: "•";
 }
 
 .sidebar h3 {
@@ -131,7 +139,7 @@ ul.quick_links li {
 
 
 div.sidebar {
-	background: #ddd;
+	background: #efefef;
 }
 
 

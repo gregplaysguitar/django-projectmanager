@@ -20,7 +20,7 @@ class ProjectTimeForm(forms.ModelForm):
 
 
 class AddTaskForm(forms.ModelForm):
-    task = forms.CharField()
+    #task = forms.CharField()
     project = forms.ModelChoiceField(queryset=Project.objects.filter(completed=False))
     class Meta:
         model = Task
