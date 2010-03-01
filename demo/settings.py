@@ -87,6 +87,7 @@ INSTALLED_APPS = (
     'django.contrib.admin',
     
 	'django_markdown2',
+#    'django_extensions',
 )
 
 

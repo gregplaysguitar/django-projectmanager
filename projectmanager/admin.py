@@ -61,7 +61,7 @@ class ProjectAdmin(RestrictedByUsers):
         
     create_invoice.short_description = 'Invoice'                
     create_invoice.allow_tags = True
-    links.short_description = ''                
+    links.short_description = ' '                
     links.allow_tags = True
 
 
@@ -88,7 +88,7 @@ class InvoiceAdmin(RestrictedByUsers):
     user_field = 'project__owner'
     is_many_field = False
     
-    list_display = ('client', 'description', 'creation_date', 'subtotal', 'paid', 'invoice')
+    list_display = ('client', 'description', 'creation_date_display', 'subtotal', 'paid', 'invoice')
     list_filter = ('projects', 'creation_date', 'paid')
     inlines = [InvoiceRowInline,]
     actions = ['make_paid',]
@@ -97,6 +97,9 @@ class InvoiceAdmin(RestrictedByUsers):
     def make_paid(self, request, queryset):
         queryset.update(paid=True)
 
+    def creation_date_display(self, instance):
+        return datetime.date(instance.creation_date.year, instance.creation_date.month, instance.creation_date.day)
+    creation_date_display.admin_order_field = 'creation_date'
     
     def invoice(self, instance):
         return u'<a href="/invoice/%d/%s">pdf</a>' % (instance.id, instance.pdf_filename()) + u' | <a href="/invoice/%d/">html</a>' % (instance.id)
