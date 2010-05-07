@@ -36,7 +36,7 @@ class ProjectAdmin(RestrictedByUsers):
         queryset.update(completed=True)
     
 #    list_display = ('client', 'name', 'creation_date', 'total_time', 'hourly_rate', 'total_expenses', 'total_cost', 'total_invoiced', 'total_to_invoice', 'approx_hours_to_invoice', 'completed')
-    list_display = ('client', 'name', 'total_estimated_hours', 'total_time', 'time_invoiced', 'total_invoiced', 'total_to_invoice', 'approx_hours_to_invoice', 'completed', 'links', )
+    list_display = ('client', 'name', 'total_estimated_hours', 'total_time', 'billing_type', 'time_invoiced', 'total_invoiced', 'total_to_invoice', 'approx_hours_to_invoice', 'completed', 'links', )
     list_display_links = ('client', 'name')
     list_filter = ('completed', 'creation_date', 'billable')
     search_fields = ('name', 'client', 'slug', 'description', 'projectexpense__description')

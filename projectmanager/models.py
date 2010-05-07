@@ -24,6 +24,7 @@ class Project(models.Model):
     billable = models.BooleanField(default=1)
     hourly_rate = models.DecimalField(max_digits=10, decimal_places=2, default=80)
     creation_date = models.DateTimeField(auto_now_add=True)
+    billing_type = models.CharField(max_length=5, choices=(('quote', 'Quote'), ('time', 'Time'),))
     
     objects = ForUserManager()
     
@@ -40,8 +41,11 @@ class Project(models.Model):
         delta = sum((item.total_time() for item in ProjectTime.objects.filter(project=self.id)), datetime.timedelta())
         return (delta.days * 24 + delta.seconds / 3600) + (((0.0 + delta.seconds / 60) % 60) / 60)
     
-    def total_estimated_hours(self):
-        return self.task_set.all().aggregate(Sum('estimated_hours'))['estimated_hours__sum'] or ''
+    def total_estimated_hours(self, completed=False):
+        tasks = self.task_set.all()
+        if completed:
+            tasks = tasks.filter(completed=True)
+        return tasks.aggregate(Sum('estimated_hours'))['estimated_hours__sum'] or ''
     
     """
     def time_invoiced(self):
@@ -59,7 +63,10 @@ class Project(models.Model):
         return float(sum(item.amount() for item in InvoiceRow.objects.filter(project=self)))
         
     def total_cost(self):
-        return self.total_expenses() + self.total_time() * float(self.hourly_rate)
+        if self.billing_type == 'quote':
+            return self.total_expenses() + float(self.total_estimated_hours(True) or 0) * float(self.hourly_rate)
+        else:
+            return self.total_expenses() + self.total_time() * float(self.hourly_rate)
     
     def total_to_invoice(self):
         return self.total_cost() - self.total_invoiced()
@@ -250,7 +257,7 @@ class Task(models.Model):
     completed = models.BooleanField()
     creation_date = models.DateTimeField(auto_now_add=True)
     completion_date = models.DateTimeField(null=True, editable=False)
-    estimated_hours = models.DecimalField(max_digits=4, decimal_places=2, default=0)
+    estimated_hours = models.DecimalField(max_digits=5, decimal_places=2, default=0)
 
     objects = ForProjectUserManager()
     
