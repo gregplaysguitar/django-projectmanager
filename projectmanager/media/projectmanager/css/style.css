@@ -12,7 +12,13 @@
 #header #nav a.current:hover {
     background: none;
 }
-
+#header #nav a.highlight {
+    color: red;
+    background: #ffa;
+}
+#header #nav a.highlight:hover {
+    background: #ffa;
+}
 
 .project.list {
     list-style: none;

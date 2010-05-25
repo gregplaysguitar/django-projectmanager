@@ -2,10 +2,11 @@ from django.db import models
 import datetime, decimal
 from string_utils import smart_truncate
 from django.http import HttpResponseRedirect
-from django.db.models.signals import pre_save, post_save
+from django.db.models.signals import pre_save, post_save, post_init
 from django.contrib.auth.models import User
 from django.db.models import Q, Sum
-
+import settings as pm_settings
+import calendar
 
 class ForUserManager(models.Manager):
     def for_user(self, user):
@@ -24,7 +25,7 @@ class Project(models.Model):
     billable = models.BooleanField(default=1)
     hourly_rate = models.DecimalField(max_digits=10, decimal_places=2, default=80)
     creation_date = models.DateTimeField(auto_now_add=True)
-    billing_type = models.CharField(max_length=5, choices=(('quote', 'Quote'), ('time', 'Time'),))
+    billing_type = models.CharField(max_length=5, choices=(('quote', 'Quote'), ('time', 'Time'),), default='quote')
     
     objects = ForUserManager()
     
@@ -247,7 +248,8 @@ class InvoiceRow(models.Model):
     def is_time(self):
         return (self.price == self.project.hourly_rate)
 
-
+    def invoice_date(self):
+        return datetime.date(self.invoice.creation_date.year, self.invoice.creation_date.month, self.invoice.creation_date.day)
 
 
 class Task(models.Model):
@@ -277,3 +279,79 @@ def set_completion_date(sender, **kwargs):
         kwargs['instance'].completion_date = datetime.datetime.now()
 pre_save.connect(set_completion_date, sender=Task)
 
+
+
+class HostingClient(models.Model):
+    owner = models.ForeignKey(User, related_name='hostingclient_ownership_set', default=1)
+    users = models.ManyToManyField(User, related_name='hostingclient_membership_set', blank=True)
+    client = models.CharField(max_length=200, blank=True)
+    name = models.CharField(max_length=200)
+    slug = models.CharField(max_length=60, unique=True)
+    billing_frequency = models.CharField(u'billing type', editable=False, max_length=10, choices=pm_settings.BILLING_PERIOD_MONTHS_CHOICES, default=pm_settings.BILLING_PERIOD_MONTHS_DEFAULT)
+    billing_period = models.CharField(max_length=10, editable=False, default='month')
+    period_fee = models.DecimalField(max_digits=10, decimal_places=2, default=25)
+    start_date = models.DateField(default=datetime.date.today)
+    invoice_rows = models.ManyToManyField(InvoiceRow, through='HostingInvoiceRow')
+    
+    invoice_due = models.BooleanField(db_column='invoice_due', editable=False)
+    
+    def _invoice_due(self):
+        print (self.total_paid < self.total_cost), (self.total_paid, self.total_cost)
+        return (self.total_paid() <= self.total_cost())
+    
+    
+    def total_cost(self):
+        months = datetime.date.today().month - self.start_date.month + (datetime.date.today().year - self.start_date.year) * 12
+        return months * self.period_fee
+    
+    def total_paid(self):
+        return sum(r.amount() for r in self.invoice_rows.filter(invoice__paid=True))
+
+    def total_invoiced(self):
+        return sum(r.amount() for r in self.invoice_rows.all())
+
+    def __unicode__(self):
+        return "%s - %s" % (self.client, self.name)
+    
+
+def hostingclient_prefill(sender, *args, **kwargs):
+    if kwargs['instance'].pk:
+        kwargs['instance'].invoice_due = kwargs['instance']._invoice_due()
+pre_save.connect(hostingclient_prefill, sender=HostingClient)
+post_init.connect(hostingclient_prefill, sender=HostingClient)
+
+class HostingInvoiceRow(models.Model):
+    hostingclient = models.ForeignKey(HostingClient)
+    invoicerow = models.ForeignKey(InvoiceRow)
+    
+    def __unicode__(self):
+        return "%s, %s: $%s" % (self.hostingclient.client, self.hostingclient.name, self.invoicerow.amount())
+        
+
+
+def create_invoice_for_hosting_clients(hostingclient_qs):
+    invoice_list = []
+    for hostingclient in hostingclient_qs.all():
+        new_invoice = Invoice.objects.create(client=hostingclient.client, description="Website hosting")
+        
+        periods_invoiced = HostingInvoiceRow.objects.filter(hostingclient=hostingclient).aggregate(models.Sum('invoicerow__quantity'))['invoicerow__quantity__sum']
+        periods_to_invoice = periods_invoiced + decimal.Decimal(hostingclient.billing_frequency)
+        
+        year = int(hostingclient.start_date.year + int(hostingclient.start_date.month + periods_to_invoice) / 12)
+        month = int((hostingclient.start_date.month + periods_to_invoice) % 12)
+        day = min(hostingclient.start_date.day, calendar.monthrange(year, month)[1])
+        
+        
+        new_row = InvoiceRow.objects.create(
+            invoice=new_invoice,
+            project=Project.objects.get(slug='hosting'),
+            detail='Website hosting until %s/%s/%s' % (day, month, year),
+            quantity=hostingclient.billing_frequency,
+            price=hostingclient.period_fee,
+        )
+        
+        HostingInvoiceRow.objects.create(invoicerow=new_row, hostingclient=hostingclient)
+        invoice_list.append(new_invoice)
+    
+    return invoice_list
+    
