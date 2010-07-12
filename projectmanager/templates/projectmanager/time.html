@@ -1,15 +1,19 @@
 {% extends "admin/base_site.html" %}
 
-{% block title %}Time logged on {{ current_day }} &mdash; {{block.super}}{% endblock %}
-{% block header %}Time logged on {{ current_day }}{% endblock %}
+{% block title %}
+    {{ current_day|date:"l, j F Y" }}
+    {{ block.super }}
+{% endblock %}
+
+{% block header %}{{ current_day|date:"l, j F Y" }}{% endblock %}
 
 
 
 {% block content %}
 <ul class="quick_links">
-	<li><a href="/time/{{previous_day}}/">Previous day</a></li>
+	<li><a href="/time/{{ previous_day }}/">Previous day</a></li>
 	<li>|</li>
-	<li><a href="/time/{{current_day}}/0-24/">24 hour view</a></li>
+	<li><a href="/time/{{ current_day|date:"Y-m-d" }}/0-24/">24 hour view</a></li>
 	<li>|</li>
 	<li><a href="/time/">Today</a></li>
 	<li>|</li>
@@ -47,7 +51,7 @@
 
 <script type="text/javascript" src="/media/projectmanager/js/time.js"></script>
 <script type="text/javascript">
-time_init({'start_hour' : {{ start_hour }}, 'end_hour' : {{ end_hour }}, 'current_day' : '{{ current_day }}', 'snap_hours' : '{{ snap_hours }}' });
+time_init({'start_hour' : {{ start_hour }}, 'end_hour' : {{ end_hour }}, 'current_day' : '{{ current_day|date:"Y-m-d" }}', 'snap_hours' : '{{ snap_hours }}' });
 </script>
 
 {% endblock %}

@@ -1,6 +1,6 @@
 from projectmanager.models import Project, ProjectTime, Task, Invoice
 from django.shortcuts import render_to_response, get_object_or_404
-from django.http import HttpResponseRedirect, HttpResponse
+from django.http import HttpResponseRedirect, HttpResponse, Http404
 from datetime import time as time_module, datetime, timedelta
 from django.contrib.auth.decorators import login_required
 from django.core.urlresolvers import reverse
@@ -43,10 +43,14 @@ def project_time(request, current_day = False, start_hour = 8, end_hour = 21):
     if not current_day:
         return HttpResponseRedirect('/time/%s/' % datetime.today().date())
     else:
+        try:
+            current_day = datetime.strptime(current_day, '%Y-%m-%d')
+        except:
+            raise Http404
         data = {
             'current_day': current_day,
-            'previous_day': (datetime.strptime(current_day, '%Y-%m-%d') - timedelta(1)).strftime('%Y-%m-%d'),
-            'next_day': (datetime.strptime(current_day, '%Y-%m-%d') + timedelta(1)).strftime('%Y-%m-%d'),
+            'previous_day': (current_day - timedelta(1)).strftime('%Y-%m-%d'),
+            'next_day': (current_day + timedelta(1)).strftime('%Y-%m-%d'),
             'start_hour': start_hour,
             'end_hour': end_hour,
             'snap_hours': snap_hours,
@@ -69,7 +73,7 @@ def project_time(request, current_day = False, start_hour = 8, end_hour = 21):
             data['time_form'] = ProjectTimeForm(initial=formData) # An unbound form
     
         
-        data['time_list'] = ProjectTime.objects.for_user(request.user).filter(start__gte="%s %s:00:00" % (current_day, start_hour), start__lte="%s %s:59:59" % (current_day, end_hour - 1)).order_by('start')
+        data['time_list'] = ProjectTime.objects.for_user(request.user).filter(start__gte="%s %s:00:00" % (current_day.strftime('%Y-%m-%d'), start_hour), start__lte="%s %s:59:59" % (current_day.strftime('%Y-%m-%d'), end_hour - 1)).order_by('start')
         for project_time in data['time_list']:
             # divide by a float to make sure we get the fractional part of the answer
 #           print round((project_time.start - project_time.start.replace(hour=0, minute=0, second=0)).seconds * 100 / 86400.0, 2)

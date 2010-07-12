@@ -296,7 +296,7 @@ class HostingClient(models.Model):
     invoice_due = models.BooleanField(db_column='invoice_due', editable=False)
     
     def _invoice_due(self):
-        print (self.total_paid < self.total_cost), (self.total_paid, self.total_cost)
+        #print (self.total_paid < self.total_cost), (self.total_paid, self.total_cost)
         return (self.total_paid() <= self.total_cost())
     
     
