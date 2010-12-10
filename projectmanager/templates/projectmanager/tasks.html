@@ -38,7 +38,7 @@ Tasks for {% firstof project "all projects" %}
 					{% if form.instance.estimated_hours %}
 					<strong>{{ form.instance.estimated_hours }}h</strong>,
 					{% endif %}
-					added {{ form.instance.creation_date|date:"d M" }}
+					added {{ form.instance.creation_date|date:"d M y" }}
 					<a href="/projectmanager/task/{{ form.instance.id }}/">edit</a>
 				</span>
 		
@@ -72,12 +72,12 @@ Tasks for {% firstof project "all projects" %}
 		<ul>
 			{% for task in completed_task_list %}
 			<li title="{{ task.task }}">
-				{{ task.task|truncatewords:"5" }}
+				{{ task.task|truncatewords:"15" }}
 				<span class="meta">
                     {% if task.estimated_hours %}
                     <strong>{{ task.estimated_hours }}h</strong>,
                     {% endif %}
-                    completed {{ task.completion_date|date:"d M" }}
+                    completed {{ task.completion_date|date:"d M y" }}
                     <a href="/projectmanager/task/{{ task.id }}/">edit</a>
 				</span>
 			</li>
@@ -90,9 +90,9 @@ Tasks for {% firstof project "all projects" %}
 		<ul>
 			{% for task in completed_task_list|slice:":10" %}
 			<li>
-				{{ task.task|truncatewords:"5" }}
+				{{ task.task|truncatewords:"15" }}
 				<span class="meta">
-                     completed {{ task.completion_date|date:"d M" }}
+                     completed {{ task.completion_date|date:"d M y" }}
                     <a href="/projectmanager/task/{{ task.id }}/">edit</a>
                 </span>
 			</li>

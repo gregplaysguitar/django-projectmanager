@@ -4,7 +4,9 @@ from models import Project, ProjectTime, Task
 
 
 class ProjectTimeForm(forms.ModelForm):
-    project = forms.ModelChoiceField(queryset=Project.objects.filter(completed=False))
+    project = forms.ChoiceField(choices=(('Recent', [(p.pk, p.name) for p in Project.objects.filter(completed=False, hidden=False)]), ('Other', [(p.pk, p.name) for p in Project.objects.filter(completed=False, hidden=True)])))
+    def clean_project(self):
+        return Project.objects.get(pk=self.cleaned_data['project'])
     
     def __init__(self, *args, **kwargs):
         super(ProjectTimeForm, self).__init__(*args, **kwargs)

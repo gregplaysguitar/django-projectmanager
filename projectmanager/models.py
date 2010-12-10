@@ -22,6 +22,7 @@ class Project(models.Model):
     slug = models.CharField(max_length=60, unique=True)
     description = models.TextField(blank=True)
     completed = models.BooleanField()
+    hidden = models.BooleanField()
     billable = models.BooleanField(default=1)
     hourly_rate = models.DecimalField(max_digits=10, decimal_places=2, default=80)
     creation_date = models.DateTimeField(auto_now_add=True)
@@ -48,6 +49,8 @@ class Project(models.Model):
             tasks = tasks.filter(completed=True)
         return tasks.aggregate(Sum('estimated_hours'))['estimated_hours__sum'] or ''
     
+    total_estimated_hours.short_description = 'Est. hours'
+    
     """
     def time_invoiced(self):
         time = sum((invoice.hours for invoice in InvoiceRow.objects.filter(project=self.id)))
@@ -59,10 +62,12 @@ class Project(models.Model):
         
     def time_invoiced(self):
         return float(sum(item.quantity for item in InvoiceRow.objects.filter(project=self) if item.is_time))
-        
+    time_invoiced.short_description = 'Hours'
+    
     def total_invoiced(self):
         return float(sum(item.amount() for item in InvoiceRow.objects.filter(project=self)))
-        
+    total_invoiced.short_description = 'Invoiced'
+
     def total_cost(self):
         if self.billing_type == 'quote':
             return self.total_expenses() + float(self.total_estimated_hours(True) or 0) * float(self.hourly_rate)
@@ -71,12 +76,14 @@ class Project(models.Model):
     
     def total_to_invoice(self):
         return self.total_cost() - self.total_invoiced()
+    total_to_invoice.short_description = 'To invoice'
     
     def approx_hours_to_invoice(self):
         if self.hourly_rate:
             return str(round(int(self.total_to_invoice() * 4) / self.hourly_rate) / 4)
         else:
             return ''
+    approx_hours_to_invoice.short_description = 'Hours'
     
     def create_invoice(self):
         times = self.projecttime_set.all()
@@ -107,7 +114,7 @@ class Project(models.Model):
         return ('projectmanager.views.projecttime_summary', (self.pk, ), )
     
     class Meta:
-        ordering = ('client', 'name',)
+        ordering = ('name',)
 
     
 
@@ -148,6 +155,12 @@ class ProjectTime(models.Model):
 
         super(ProjectTime, self).save(force_insert, force_update)
 
+
+def activate_project(sender, instance, **kwargs):
+    if instance.project.hidden and instance.project.billable:
+        instance.project.hidden = False
+        instance.project.save()
+post_save.connect(activate_project, sender=ProjectTime)
 
 def round_datetime(dt):
     return dt + datetime.timedelta(minutes=(round(float(dt.minute + float(dt.second) / 60) / 15) * 15 - dt.minute), seconds=-dt.second)
@@ -192,10 +205,10 @@ class Invoice(models.Model):
         return sum(item.amount() for item in InvoiceRow.objects.filter(invoice=self))
     
     def gst_amount(self):
-        return round(float(self.subtotal()) * 0.125, 2)
+        return round(float(self.subtotal()) * 0.15, 2)
     
     def total(self):
-        return round(float(self.subtotal()) * 1.125, 2)
+        return round(float(self.subtotal()) * 1.15, 2)
     
     @models.permalink
     def get_absolute_url(self):
@@ -239,7 +252,7 @@ class InvoiceRow(models.Model):
         return self.price * self.quantity
 
     def __unicode__(self):
-        return "%s on %s" % (self.amount(), self.project.name)
+        return "%s on %s (%s)" % (self.amount(), self.project.name, self.invoice.creation_date.strftime('%d/%m/%Y'))
         
     
     # assume its time if the rate is the same as the project rate - dubious yes, maybe
@@ -297,12 +310,14 @@ class HostingClient(models.Model):
     
     def _invoice_due(self):
         #print (self.total_paid < self.total_cost), (self.total_paid, self.total_cost)
-        return (self.total_paid() <= self.total_cost())
+        return (self.total_invoiced() <= self.total_cost())
     
-    
+    def total_expenses(self):
+        return sum(item.amount for item in self.hostingexpense_set.all())
+        
     def total_cost(self):
         months = datetime.date.today().month - self.start_date.month + (datetime.date.today().year - self.start_date.year) * 12
-        return months * self.period_fee
+        return self.total_expenses() + months * self.period_fee
     
     def total_paid(self):
         return sum(r.amount() for r in self.invoice_rows.filter(invoice__paid=True))
@@ -328,13 +343,29 @@ class HostingInvoiceRow(models.Model):
         return "%s, %s: $%s" % (self.hostingclient.client, self.hostingclient.name, self.invoicerow.amount())
         
 
+class HostingExpense(models.Model):
+    creation_date = models.DateTimeField(auto_now_add=True)
+    amount = models.DecimalField(max_digits=10, decimal_places=2)
+    description = models.TextField()
+    hosting_client = models.ForeignKey(HostingClient)
+
+    
+    def description_truncated(self):
+        return smart_truncate(self.description, 30)
+    
+    def __unicode__(self):
+        return "%s: %s (%s)" % (self.hosting_client.name, self.description, self.amount)
+    
+
+
+
 
 def create_invoice_for_hosting_clients(hostingclient_qs):
     invoice_list = []
     for hostingclient in hostingclient_qs.all():
         new_invoice = Invoice.objects.create(client=hostingclient.client, description="Website hosting")
         
-        periods_invoiced = HostingInvoiceRow.objects.filter(hostingclient=hostingclient).aggregate(models.Sum('invoicerow__quantity'))['invoicerow__quantity__sum']
+        periods_invoiced = HostingInvoiceRow.objects.filter(hostingclient=hostingclient).aggregate(models.Sum('invoicerow__quantity'))['invoicerow__quantity__sum'] or 0
         periods_to_invoice = periods_invoiced + decimal.Decimal(hostingclient.billing_frequency)
         
         year = int(hostingclient.start_date.year + int(hostingclient.start_date.month + periods_to_invoice) / 12)

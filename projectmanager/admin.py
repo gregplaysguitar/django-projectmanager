@@ -35,16 +35,19 @@ class ProjectAdmin(RestrictedByUsers):
     def make_completed(self, request, queryset):
         queryset.update(completed=True)
     
+    def make_hidden(self, request, queryset):
+        queryset.update(hidden=True)
+    
 #    list_display = ('client', 'name', 'creation_date', 'total_time', 'hourly_rate', 'total_expenses', 'total_cost', 'total_invoiced', 'total_to_invoice', 'approx_hours_to_invoice', 'completed')
-    list_display = ('client', 'name', 'total_estimated_hours', 'total_time', 'billing_type', 'time_invoiced', 'total_invoiced', 'total_to_invoice', 'approx_hours_to_invoice', 'completed', 'links', )
+    list_display = ('name', 'client', 'total_estimated_hours', 'total_time', 'billing_type', 'total_invoiced', 'time_invoiced', 'total_to_invoice', 'approx_hours_to_invoice', 'completed', 'links', )
     list_display_links = ('client', 'name')
-    list_filter = ('completed', 'creation_date', 'billable')
+    list_filter = ('completed', 'creation_date', 'billable', 'hidden')
     search_fields = ('name', 'client', 'slug', 'description', 'projectexpense__description')
     prepopulated_fields = {
         'slug': ('client', 'name',)
     }
     inlines = [ProjectExpenseInline,TaskInline,]
-    actions = ['create_invoice_for_selected', 'make_completed']
+    actions = ['create_invoice_for_selected', 'make_completed', 'make_hidden']
     exclude = ('owner', )
     
     def create_invoice(self, instance):
@@ -113,9 +116,9 @@ admin.site.register(Invoice, InvoiceAdmin)
 class TaskAdmin(RestrictedByUsers):
     user_field = 'project__owner'
     is_many_field = False
-    
-    list_display = ('project', 'task', 'completed', 'completion_date', 'creation_date')
-
+    list_filter = ('completed', 'creation_date', 'project', )
+    list_display = ('project', 'task', 'estimated_hours', 'completed', 'completion_date', 'creation_date')
+    search_fields = ('project__name', 'task', 'comments')
 admin.site.register(Task, TaskAdmin)
 
 
@@ -126,6 +129,11 @@ class HostingInvoiceRowInline(admin.TabularInline):
     model = HostingInvoiceRow
     extra = 0
     raw_id_fields = ('invoicerow',)
+   
+
+class HostingExpenseInline(admin.TabularInline):
+    model = HostingExpense
+    extra = 1
     
     
 class HostingClientAdmin(RestrictedByUsers):
@@ -139,7 +147,7 @@ class HostingClientAdmin(RestrictedByUsers):
     prepopulated_fields = {
         'slug': ('client', 'name',)
     }
-    inlines = [HostingInvoiceRowInline,]
+    inlines = [HostingInvoiceRowInline,HostingExpenseInline,]
     actions = ['create_invoice_for_selected']
 
     def create_invoice_for_selected(self, request, queryset):
