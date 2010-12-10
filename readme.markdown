@@ -14,6 +14,7 @@ DEMO USAGE
 ==========
 
 - navigate to the demo/ folder
+- run python manage.py syncdb
 - run python manage.py runserver
 - login with admin/admin
 
