@@ -194,7 +194,6 @@ def projecttime_summary(request, project_pk):
     ])
     
     for projecttime in project.projecttime_set.all().order_by('start'):
-        print projecttime.description
         writer.writerow([
             "%sh" % projecttime.total_time(),
             unicode(projecttime.description),

@@ -307,16 +307,25 @@ class HostingClient(models.Model):
     invoice_rows = models.ManyToManyField(InvoiceRow, through='HostingInvoiceRow')
     
     invoice_due = models.BooleanField(db_column='invoice_due', editable=False)
-    
     def _invoice_due(self):
         #print (self.total_paid < self.total_cost), (self.total_paid, self.total_cost)
         return (self.total_invoiced() <= self.total_cost())
+    
+    termination_date = models.DateField(null=True, blank=True)
+    
+    hidden = models.BooleanField(default=False, editable=False)
+    def _hidden(self):
+        return bool(self.termination_date and self.termination_date < datetime.date.today())
     
     def total_expenses(self):
         return sum(item.amount for item in self.hostingexpense_set.all())
         
     def total_cost(self):
-        months = datetime.date.today().month - self.start_date.month + (datetime.date.today().year - self.start_date.year) * 12
+        if self.termination_date:
+            end = self.termination_date
+        else:
+            end = datetime.date.today()
+        months = end.month - self.start_date.month + (end.year - self.start_date.year) * 12
         return self.total_expenses() + months * self.period_fee
     
     def total_paid(self):
@@ -332,6 +341,8 @@ class HostingClient(models.Model):
 def hostingclient_prefill(sender, *args, **kwargs):
     if kwargs['instance'].pk:
         kwargs['instance'].invoice_due = kwargs['instance']._invoice_due()
+        kwargs['instance'].hidden = kwargs['instance']._hidden()
+        
 pre_save.connect(hostingclient_prefill, sender=HostingClient)
 post_init.connect(hostingclient_prefill, sender=HostingClient)
 

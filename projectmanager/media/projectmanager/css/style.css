@@ -52,6 +52,7 @@
     content: "•";
 }
 
+
 .sidebar h3 {
     margin: 10px;
 }
@@ -181,7 +182,15 @@ div.sidebar {
 	font-size: 80%;
 	color: #aaa;
 }
-
+.pending-tasks ul li .comments {
+    font-size: 80%;
+    background: #ffe;
+    padding: 5px;
+    display: none;
+}
+.pending-tasks ul li:hover .comments {
+    display: block;
+}
 
 
 .tasks-leftcol {
@@ -191,6 +200,14 @@ div.sidebar {
 .tasks-rightcol {
     float: left;
     width: 30%;
+    position: relative;
+}
+.tasks-rightcol .toggle {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    cursor: pointer;
+    color: #5B80B2;
 }
 
 

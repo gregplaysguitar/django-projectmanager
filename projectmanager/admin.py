@@ -79,6 +79,7 @@ class ProjectTimeAdmin(RestrictedByUsers):
     list_filter = ('project', 'start')
     search_fields = ('description',)
     date_hierarchy = 'start'
+    raw_id_fields = ('project',)
 
 admin.site.register(ProjectTime, ProjectTimeAdmin)
 
@@ -86,6 +87,7 @@ admin.site.register(ProjectTime, ProjectTimeAdmin)
 class InvoiceRowInline(admin.TabularInline):
     model = InvoiceRow
     extra = 2
+    raw_id_fields = ('project',)
 
 class InvoiceAdmin(RestrictedByUsers):
     user_field = 'project__owner'
@@ -142,7 +144,7 @@ class HostingClientAdmin(RestrictedByUsers):
     
     list_display = ('client', 'name', 'start_date', 'total_cost', 'total_invoiced', 'total_paid', 'invoice_due', )
     list_display_links = ('client', 'name')
-    list_filter = ('start_date', 'invoice_due',)
+    list_filter = ('start_date', 'invoice_due', 'termination_date', 'hidden',)
     search_fields = ('name', 'client', )
     prepopulated_fields = {
         'slug': ('client', 'name',)
