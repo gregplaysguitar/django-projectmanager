@@ -96,6 +96,8 @@ def project_time(request, current_day = False, start_hour = 8, end_hour = 21):
             project_time.display_info = {
                 'percentage_position': round((display_start_seconds - start_seconds) * 100 / total_seconds, 2),
                 'percentage_height': round(display_height_seconds * 100 / total_seconds, 2),
+                'also_yesterday': (project_time.start < day_start),
+                'also_tomorrow': (project_time.end > day_end),
             }
 
         data['hour_dividers'] = []
