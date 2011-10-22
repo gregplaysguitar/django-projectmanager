@@ -1,3 +1,4 @@
+from django.db.models.query_utils import Q
 from projectmanager.models import Project, ProjectTime, Task, Invoice
 from django.shortcuts import render_to_response, get_object_or_404
 from django.http import HttpResponseRedirect, HttpResponse, Http404
@@ -72,14 +73,29 @@ def project_time(request, current_day = False, start_hour = 8, end_hour = 21):
                 formData = {}
             data['time_form'] = ProjectTimeForm(initial=formData) # An unbound form
 
-        data['time_list'] = ProjectTime.objects.for_user(request.user).filter(start__gte="%s %s:00:00" % (current_day.strftime('%Y-%m-%d'), start_hour), start__lte="%s %s:59:59" % (current_day.strftime('%Y-%m-%d'), end_hour - 1)).order_by('start')
+        day_start = current_day
+        day_end = current_day.replace(hour=23, minute=59, second=59)
+        view_start = current_day + timedelta(hours=start_hour)
+
+        time_qs = ProjectTime.objects.for_user(request.user).filter(
+            Q(start__range=(day_start, day_end)) |          # start today
+            Q(end__range=(day_start, day_end)) |            # working over midnight
+            (Q(start__lt=day_start) & Q(end__gt=day_end))   # spanned multiple days
+        ).order_by('start')
+
+        data['time_list'] = time_qs
         for project_time in data['time_list']:
-            # divide by a float to make sure we get the fractional part of the answer
-#           print round((project_time.start - project_time.start.replace(hour=0, minute=0, second=0)).seconds * 100 / 86400.0, 2)
+            # Make multi-day spanning items fit in the view
+            display_start = max(project_time.start, view_start)
+            display_end = min(project_time.end, day_end)
+
+            display_start_seconds = (display_start - display_start.replace(hour=0, minute=0, second=0)).seconds
+            display_height_seconds = (display_end - display_start).seconds
+            start_seconds = start_hour * 3600
 
             project_time.display_info = {
-                'percentage_position': round(((project_time.start - project_time.start.replace(hour=0, minute=0, second=0)).seconds - start_hour * 3600) * 100 / total_seconds, 2),
-                'percentage_height': round((project_time.end - project_time.start).seconds * 100 / total_seconds, 2),
+                'percentage_position': round((display_start_seconds - start_seconds) * 100 / total_seconds, 2),
+                'percentage_height': round(display_height_seconds * 100 / total_seconds, 2),
             }
 
         data['hour_dividers'] = []
