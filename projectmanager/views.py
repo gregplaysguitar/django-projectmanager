@@ -1,4 +1,5 @@
 from django.db.models.query_utils import Q
+from django.utils import simplejson
 from projectmanager.models import Project, ProjectTime, Task, Invoice
 from django.shortcuts import render_to_response, get_object_or_404
 from django.http import HttpResponseRedirect, HttpResponse, Http404
@@ -107,6 +108,36 @@ def project_time(request, current_day = False, start_hour = 8, end_hour = 21):
         return render_to_response('projectmanager/time.html', data)
 
 
+@login_required
+def project_time_calendar(request):
+    return render_to_response('projectmanager/time2.html')
+
+
+@login_required
+def get_project_time(request):
+    date_start = datetime.fromtimestamp(int(request.GET['start']))
+    date_end = datetime.fromtimestamp(int(request.GET['end']))
+
+    time_qs = ProjectTime.objects.for_user(request.user).filter(
+        Q(start__range=(date_start, date_end)) |          # start today
+        Q(end__range=(date_start, date_end)) |            # working over midnight
+        (Q(start__lt=date_start) & Q(end__gt=date_end))   # spanned multiple days
+    ).order_by('start').values(
+        'id', 'start', 'end', 'description', 'project',
+    )
+
+    json = []
+    for time in time_qs:
+        json.append({
+            'id': time['id'],
+            'start': time['start'].strftime("%Y-%m-%d %H:%M"),
+            'end': time['end'].strftime("%Y-%m-%d %H:%M"),
+            'title': time['description'],
+            'allDay': False,
+            #'url': '',
+        })
+
+    return HttpResponse(simplejson.dumps(json), content_type='application/javascript')
 
 
 @login_required

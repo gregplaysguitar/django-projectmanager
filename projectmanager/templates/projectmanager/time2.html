@@ -1,0 +1,97 @@
+{% extends "admin/base_site.html" %}
+
+{% block title %}
+    {{ current_day|date:"l, j F Y" }}
+    {{ block.super }}
+{% endblock %}
+
+{% block header %}{{ current_day|date:"l, j F Y" }}{% endblock %}
+
+
+
+{% block content %}
+<div id='loading' style='display:none'>loading...</div>
+<div id="calendar">
+</div>
+
+<form action="{{ request.get_full_path }}" method="post" class="addtime">
+<fieldset class="form" id="add_time">
+	<table border="0" cellpadding="0" cellspacing="0">
+		{{ time_form.as_table }}
+		<tr>
+			<th>&nbsp;</th>
+			<td><input type="submit" value="Submit"></td>
+		</tr>
+	</table>
+</fieldset>
+</form>
+
+<link rel="stylesheet" type="text/css" href="/media/projectmanager/css/fullcalendar.css" />
+<link rel="stylesheet" type="text/css" href="/media/projectmanager/css/fullcalendar.print.css" media="print" />
+<script type="text/javascript" src="/media/projectmanager/js/lib/jquery-1.5.2.min.js"></script>
+<script type="text/javascript" src="/media/projectmanager/js/lib/jquery-ui-1.8.11.custom.min.js"></script>
+<script type="text/javascript" src="/media/projectmanager/js/lib/fullcalendar.js"></script>
+<script type="text/javascript">
+  $(document).ready(function() {
+
+    var date = new Date();
+    var d = date.getDate();
+    var m = date.getMonth();
+    var y = date.getFullYear();
+
+    var calendar = $('#calendar').fullCalendar({
+      header: {
+        left: 'prev,next today',
+        center: 'title',
+        //right: 'month,basicWeek,basicDay'
+        right: 'month,agendaWeek,agendaDay'
+      },
+      editable: true,
+      firstHour: 8,
+      defaultView: 'agendaWeek',
+      contentHeight: 550,
+      firstDay: 1, // monday
+      events: "/api/get_project_time/",
+      eventDrop: onCalendarEventDrop,
+      loading: onCalendarLoading,
+      select: onCalendarSelect,
+      selectable: true,
+      selectHelper: true
+    });
+
+    function onCalendarEventDrop(event, delta)
+    {
+      alert(event.title + ' was moved ' + delta + ' days\n' +
+              '(should probably update your database)');
+    }
+
+    function onCalendarLoading(bool)
+    {
+        if (bool) $('#loading').show();
+        else $('#loading').hide();
+    }
+
+    function onCalendarSelect(start, end, allDay)
+    {
+      var title = prompt('Event Title:');
+      if( title )
+      {
+        calendar.fullCalendar('renderEvent',
+          {
+            title: title,
+            start: start,
+            end: end,
+            allDay: allDay
+          },
+          true // make the event "stick"
+        );
+      }
+      calendar.fullCalendar('unselect');
+    }
+
+  });
+</script>
+
+{% endblock %}
+
+
