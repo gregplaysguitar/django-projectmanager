@@ -14,13 +14,14 @@
 <div id="calendar">
 </div>
 
+<div id="add_time_overlay"></div>
 <form action="{{ request.get_full_path }}" method="post" class="addtime">
 <fieldset class="form" id="add_time">
 	<table border="0" cellpadding="0" cellspacing="0">
 		{{ time_form.as_table }}
 		<tr>
 			<th>&nbsp;</th>
-			<td><input type="submit" value="Submit"></td>
+			<td><input type="submit" value="Submit" id="add_time_submit"><input type="button" value="Cancel" id="add_time_cancel" /></td>
 		</tr>
 	</table>
 </fieldset>
@@ -51,19 +52,18 @@
       defaultView: 'agendaWeek',
       contentHeight: 550,
       firstDay: 1, // monday
-      events: "/api/get_project_time/",
-      eventDrop: onCalendarEventDrop,
+      events: "/api/time/list/",
       loading: onCalendarLoading,
       select: onCalendarSelect,
+      eventDrop: onCalendarEventUpdate,
+      eventResize: onCalendarEventUpdate,
+      eventClick: onCalendarEventClick,
       selectable: true,
       selectHelper: true
     });
 
-    function onCalendarEventDrop(event, delta)
-    {
-      alert(event.title + ' was moved ' + delta + ' days\n' +
-              '(should probably update your database)');
-    }
+    $("form.addtime").submit(onAddTimeSubmit);
+    $("#add_time_cancel, #add_time_overlay").click(hideAddTimeForm)
 
     function onCalendarLoading(bool)
     {
@@ -73,24 +73,120 @@
 
     function onCalendarSelect(start, end, allDay)
     {
-      var title = prompt('Event Title:');
-      if( title )
+      // Prefill  the form.
+      $('#add_time #id_start').val(formatDate(start));
+      $('#add_time #id_end').val(formatDate(end));
+      $('#add_time #id_project').focus();
+      $("#add_time, #add_time_overlay").fadeIn(300);
+    }
+
+    function onCalendarEventUpdate(event, delta)
+    {
+      _jQueryPost("/api/time/move/", _eventToPostVars(event), null);
+    }
+
+    function onCalendarEventClick(event)
+    {
+      alert("1");
+    }
+
+    function onAddTimeSubmit(event)
+    {
+      event.preventDefault();
+      _jQueryPost("/api/time/add/", $("#add_time").serialize(), onAddTimeResponse);
+    }
+
+    function onAddTimeResponse(data, status, xhr)
+    {
+      if( ! data.status )
       {
-        calendar.fullCalendar('renderEvent',
-          {
-            title: title,
-            start: start,
-            end: end,
-            allDay: allDay
-          },
-          true // make the event "stick"
-        );
+        var msg = '';
+        for( fieldname in data.errors )
+          msg += fieldname + ": " + data.errors[fieldname];
+        alert(msg);
+        return;
       }
+
+      calendar.fullCalendar('renderEvent', data.event, true); // third arg makes make the event "stick"
+      hideAddTimeForm();  // hides the selection band.
+    }
+
+    function onAjaxError()
+    {
+      alert("Server error, unable to update database!");
+    }
+
+    function hideAddTimeForm()
+    {
+      $("#add_time, #add_time_overlay").fadeOut(500);
       calendar.fullCalendar('unselect');
+    }
+
+    function formatDate(date)
+    {
+      // JavaScript has no native format function.
+      var hours = date.getHours().toString();
+      var mins = date.getMinutes().toString();
+      if( hours.length == 1 ) hours = "0" + hours;
+      if( mins.length == 1 ) mins = "0" + mins;
+      return date.getFullYear() + "-" + (date.getMonth()+1) + "-" + date.getDate() + " " + hours + ":" + mins;
+    }
+
+
+    // ---- Ajax posting ----
+
+    function _jQueryPost(url, postdata, onsuccess)
+    {
+      jQuery.ajax(url, {
+        'type': 'POST',
+        'data': postdata,
+        'dataType': 'json',
+        'success': onsuccess,
+        'error': onAjaxError
+      });
+    }
+
+    function _eventToPostVars(event)
+    {
+      var postvars = {
+        'id': event.id,
+        'title': event.title,
+        'start': formatDate(event.start),
+        'end': formatDate(event.end),
+        'allDay': event.allDay
+      };
+      return jQuery.param(postvars);
     }
 
   });
 </script>
+<style type="text/css">
+
+  #add_time {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 400px;
+    margin: -150px 0 0 -300px;
+    z-index: 1000;
+    background-color: #fff;
+    display: none;
+  }
+
+  #add_time_overlay {
+    /* No old MSIE support yet */
+    position: fixed;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 999;
+    opacity: 0.5;
+    background-color: #333;
+    display: none;
+  }
+
+</style>
 
 {% endblock %}
 

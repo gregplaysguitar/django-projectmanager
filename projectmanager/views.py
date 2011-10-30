@@ -1,12 +1,14 @@
 from django.db.models.query_utils import Q
 from django.utils import simplejson
+from django.views.decorators.http import require_POST
+from jsonresponse import JsonResponse
 from projectmanager.models import Project, ProjectTime, Task, Invoice
 from django.shortcuts import render_to_response, get_object_or_404
 from django.http import HttpResponseRedirect, HttpResponse, Http404
 from datetime import time as time_module, datetime, timedelta
 from django.contrib.auth.decorators import login_required
 from django.core.urlresolvers import reverse
-from django.forms.models import modelformset_factory
+from django.forms.models import modelformset_factory, model_to_dict
 
 
 # pdf stuff
@@ -84,7 +86,7 @@ def project_time(request, current_day = False, start_hour = 8, end_hour = 21):
             (Q(start__lt=day_start) & Q(end__gt=day_end))   # spanned multiple days
         ).order_by('start')
 
-        data['time_list'] = time_qs
+        data['time_list'] = list(time_qs)
         for project_time in data['time_list']:
             # Make multi-day spanning items fit in the view
             display_start = max(project_time.start, view_start)
@@ -99,7 +101,32 @@ def project_time(request, current_day = False, start_hour = 8, end_hour = 21):
                 'percentage_height': round(display_height_seconds * 100 / total_seconds, 2),
                 'also_yesterday': (project_time.start < day_start),
                 'also_tomorrow': (project_time.end > day_end),
+                'percentage_width': 100,
+                'percentage_left': 0,
+                'cols': 1,
+                'overlap_col': 0,
             }
+
+        for project_time in data['time_list']:
+            start = project_time.start
+            end = project_time.end
+
+            for time2 in data['time_list']:
+                # start in between, or
+                # end in between
+                # totally spanned over
+                if start < time2.start < end \
+                or start < time2.end < end \
+                or (start < time2.start and time2.end < end):
+                    project_time.display_info['cols'] += 1
+                    time2.display_info['overlap_col'] += project_time.display_info['overlap_col'] + 1
+
+        for project_time in data['time_list']:
+            cols = float(project_time.display_info['cols'])
+            col = project_time.display_info['overlap_col']
+            if cols > 1:
+                project_time.display_info['percentage_width'] = int(100 / cols)
+                project_time.display_info['percentage_left'] = int(100 / cols) * (col - 1)
 
         data['hour_dividers'] = []
         for i in range(start_hour, end_hour):
@@ -110,11 +137,19 @@ def project_time(request, current_day = False, start_hour = 8, end_hour = 21):
 
 @login_required
 def project_time_calendar(request):
-    return render_to_response('projectmanager/time2.html')
+    # get latest ProjectTime and use its project as the default
+    formData = {}
+    if ProjectTime.objects.count():
+        formData['project'] = ProjectTime.objects.all().order_by('-start')[0].project.id
+    time_form = ProjectTimeForm(initial=formData)
+
+    return render_to_response('projectmanager/time2.html', {
+        'time_form': time_form,
+    })
 
 
 @login_required
-def get_project_time(request):
+def api_project_time_list(request):
     date_start = datetime.fromtimestamp(int(request.GET['start']))
     date_end = datetime.fromtimestamp(int(request.GET['end']))
 
@@ -122,22 +157,67 @@ def get_project_time(request):
         Q(start__range=(date_start, date_end)) |          # start today
         Q(end__range=(date_start, date_end)) |            # working over midnight
         (Q(start__lt=date_start) & Q(end__gt=date_end))   # spanned multiple days
-    ).order_by('start').values(
-        'id', 'start', 'end', 'description', 'project',
-    )
+    ).order_by('start')
 
     json = []
-    for time in time_qs:
-        json.append({
-            'id': time['id'],
-            'start': time['start'].strftime("%Y-%m-%d %H:%M"),
-            'end': time['end'].strftime("%Y-%m-%d %H:%M"),
-            'title': time['description'],
-            'allDay': False,
-            #'url': '',
+    for projecttime in time_qs:
+        json.append(_projecttime_to_json(projecttime))
+
+    return JsonResponse(json)
+
+
+@login_required
+@require_POST
+def api_project_time_add(request):
+    form = ProjectTimeForm(request.POST)
+    return _api_project_time_form(form)
+
+
+@login_required
+@require_POST
+def api_project_time_edit(request):
+    time = ProjectTime.objects.get(pk=int(request.POST['id']))
+    form = ProjectTimeForm(request.POST, instance=time)
+    return _api_project_time_form(form)
+
+
+@login_required
+@require_POST
+def api_project_time_move(request):
+    time = ProjectTime.objects.get(pk=int(request.POST['id']))
+    # be more relaxed with validation, other fields don't have to be validated.
+    time.start = datetime.strptime(request.POST['start'], "%Y-%m-%d %H:%M")
+    time.end = datetime.strptime(request.POST['end'], "%Y-%m-%d %H:%M")
+    time.save()
+    return JsonResponse({
+        'status': True,
+        'event': _projecttime_to_json(time),
+    })
+
+
+def _api_project_time_form(form):
+    if form.is_valid():
+        projecttime = form.save()
+        return JsonResponse({
+            'status': True,
+            'event': _projecttime_to_json(projecttime),
+        })
+    else:
+        return JsonResponse({
+            'status': False,
+            'errors': form.errors
         })
 
-    return HttpResponse(simplejson.dumps(json), content_type='application/javascript')
+
+def _projecttime_to_json(projecttime):
+    return  {
+        'id': projecttime.id,
+        'start': projecttime.start.strftime("%Y-%m-%d %H:%M"),
+        'end': projecttime.end.strftime("%Y-%m-%d %H:%M"),
+        'title': projecttime.description,
+        'allDay': False,
+        #'url': '',
+    }
 
 
 @login_required
