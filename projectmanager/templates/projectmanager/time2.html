@@ -64,7 +64,10 @@
     });
 
     $("form.addtime").submit(onTimeFormSubmit);
-    $("#add_time_cancel, #add_time_overlay").click(hideAddTimeForm)
+    $("#add_time_cancel, #add_time_overlay").click(hideAddTimeForm);
+
+    $(document).keydown(onDocumentKeyDown)
+
 
     function onCalendarLoading(bool)
     {
@@ -142,6 +145,13 @@
     function onAjaxError()
     {
       alert("Server error, unable to update database!");
+    }
+
+    function onDocumentKeyDown(event)
+    {
+      if( event.which == 27 ) {  // escape
+        hideAddTimeForm();
+      }
     }
 
     function displayFormErrors(errors)
