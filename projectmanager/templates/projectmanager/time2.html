@@ -78,7 +78,7 @@
     function onCalendarSelect(start, end, allDay)
     {
       // Prefill the form.
-      $('#add_time #id_id').val('0');
+      $('form.addtime #id_id').val('0');
       $('#add_time #id_start').val(formatDate(start));
       $('#add_time #id_end').val(formatDate(end));
       $('#add_time #id_description').val("");
