@@ -16,6 +16,7 @@
 
 <div id="add_time_overlay"></div>
 <form action="{{ request.get_full_path }}" method="post" class="addtime">
+<div><input type="hidden" id="id_id" name="id" value="0" /></div>
 <fieldset class="form" id="add_time">
 	<table border="0" cellpadding="0" cellspacing="0">
 		{{ time_form.as_table }}
@@ -62,7 +63,7 @@
       selectHelper: true
     });
 
-    $("form.addtime").submit(onAddTimeSubmit);
+    $("form.addtime").submit(onTimeFormSubmit);
     $("#add_time_cancel, #add_time_overlay").click(hideAddTimeForm)
 
     function onCalendarLoading(bool)
@@ -73,9 +74,11 @@
 
     function onCalendarSelect(start, end, allDay)
     {
-      // Prefill  the form.
+      // Prefill the form.
+      $('#add_time #id_id').val('0');
       $('#add_time #id_start').val(formatDate(start));
       $('#add_time #id_end').val(formatDate(end));
+      $('#add_time #id_description').val("");
       $('#add_time #id_project').focus();
       $("#add_time, #add_time_overlay").fadeIn(300);
     }
@@ -87,23 +90,31 @@
 
     function onCalendarEventClick(event)
     {
-      alert("1");
+      // Prefill the form.
+      $('form.addtime #id_id').val(event._id);
+      $('#add_time #id_start').val(formatDate(event.start));
+      $('#add_time #id_end').val(formatDate(event.end));
+      $('#add_time #id_project').val(event._project_id);
+      $('#add_time #id_description').val(event._description).focus();
+      $("#add_time, #add_time_overlay").fadeIn(300);
     }
 
-    function onAddTimeSubmit(event)
+    function onTimeFormSubmit(event)
     {
       event.preventDefault();
-      _jQueryPost("/api/time/add/", $("#add_time").serialize(), onAddTimeResponse);
+      var form = $("form.addtime");
+
+      if( !parseInt(form[0].elements['id'].value) )
+        _jQueryPost("/api/time/add/", $("form.addtime").serialize(), onAddTimeResponse);
+      else
+        _jQueryPost("/api/time/edit/", $("form.addtime").serialize(), onEditTimeResponse);
     }
 
     function onAddTimeResponse(data, status, xhr)
     {
       if( ! data.status )
       {
-        var msg = '';
-        for( fieldname in data.errors )
-          msg += fieldname + ": " + data.errors[fieldname];
-        alert(msg);
+        displayFormErrors(data.errors);
         return;
       }
 
@@ -111,10 +122,36 @@
       hideAddTimeForm();  // hides the selection band.
     }
 
+    function onEditTimeResponse(data, status, xhr)
+    {
+      if( ! data.status )
+      {
+        displayFormErrors(data.errors);
+        return;
+      }
+
+      // Update the existing item with the new values.
+      var newevent = calendar.fullCalendar('clientEvents', data.event._id)[0];
+      for(var prop in data.event)
+        newevent[prop] = data.event[prop];
+
+      calendar.fullCalendar('updateEvent', newevent);
+      hideAddTimeForm();  // hides the selection band.
+    }
+
     function onAjaxError()
     {
       alert("Server error, unable to update database!");
     }
+
+    function displayFormErrors(errors)
+    {
+      var msg = '';
+      for( var fieldname in errors )
+        msg += fieldname + ": " + errors[fieldname];
+      alert(msg);
+    }
+
 
     function hideAddTimeForm()
     {
@@ -149,12 +186,14 @@
     function _eventToPostVars(event)
     {
       var postvars = {
-        'id': event.id,
+        'id': event._id,
         'title': event.title,
         'start': formatDate(event.start),
         'end': formatDate(event.end),
         'allDay': event.allDay
       };
+      if( event._project_id )
+        postvars['project_id'] = event._project_id;
       return jQuery.param(postvars);
     }
 

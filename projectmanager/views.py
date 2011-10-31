@@ -211,10 +211,12 @@ def _api_project_time_form(form):
 
 def _projecttime_to_json(projecttime):
     return  {
-        'id': projecttime.id,
+        '_id': projecttime.id,
+        "_description": projecttime.description,
+        '_project_id': projecttime.project_id,
         'start': projecttime.start.strftime("%Y-%m-%d %H:%M"),
         'end': projecttime.end.strftime("%Y-%m-%d %H:%M"),
-        'title': projecttime.description,
+        'title': "{0}: {1}".format(projecttime.project, projecttime.description),
         'allDay': False,
         #'url': '',
     }
