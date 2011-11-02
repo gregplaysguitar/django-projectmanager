@@ -51,7 +51,7 @@
       editable: true,
       firstHour: 8,
       defaultView: 'agendaWeek',
-      contentHeight: 550,
+      //contentHeight: 1500,
       firstDay: 1, // monday
       events: "/api/time/list/",
       loading: onCalendarLoading,
@@ -60,7 +60,8 @@
       eventResize: onCalendarEventUpdate,
       eventClick: onCalendarEventClick,
       selectable: true,
-      selectHelper: true
+      selectHelper: true,
+      slotMinutes: 15
     });
 
     $("form.addtime").submit(onTimeFormSubmit);
