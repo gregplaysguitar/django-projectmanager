@@ -21,9 +21,9 @@ class Project(models.Model):
     name = models.CharField(max_length=200)
     slug = models.CharField(max_length=60, unique=True)
     description = models.TextField(blank=True)
-    completed = models.BooleanField()
-    hidden = models.BooleanField()
-    billable = models.BooleanField(default=1)
+    completed = models.BooleanField(db_index=True)
+    hidden = models.BooleanField(db_index=True)
+    billable = models.BooleanField(default=1, db_index=True)
     hourly_rate = models.DecimalField(max_digits=10, decimal_places=2, default=80)
     creation_date = models.DateTimeField(auto_now_add=True)
     billing_type = models.CharField(max_length=5, choices=(('quote', 'Quote'), ('time', 'Time'),), default='quote')
@@ -126,8 +126,8 @@ class ForProjectUserManager(models.Manager):
 
 class ProjectTime(models.Model):
     creation_date = models.DateTimeField(auto_now_add=True)
-    start = models.DateTimeField()
-    end = models.DateTimeField()
+    start = models.DateTimeField(db_index=True)
+    end = models.DateTimeField(db_index=True)
     description = models.TextField()
     project = models.ForeignKey(Project)
     _time = models.DecimalField(max_digits=4, decimal_places=2, null=True, editable=False)
@@ -189,7 +189,7 @@ class Invoice(models.Model):
     email = models.CharField(max_length=255, blank=True)
     description = models.CharField(max_length=255, blank=True)
     address = models.TextField(blank=True)
-    paid = models.BooleanField()
+    paid = models.BooleanField(db_index=True)
     projects = models.ManyToManyField(Project, through="InvoiceRow")
 
     objects = ForProjectUserManager()
