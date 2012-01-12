@@ -37,105 +37,6 @@ def index(request):
 
 
 @login_required
-def project_time(request, current_day = False, start_hour = 8, end_hour = 21):
-    snap_hours = 0.25
-
-    start_hour = int(start_hour)
-    end_hour = int(end_hour)
-    total_seconds = float((end_hour - start_hour) * 3600)
-
-    if not current_day:
-        return HttpResponseRedirect('/time/%s/' % datetime.today().date())
-    else:
-        try:
-            current_day = datetime.strptime(current_day, '%Y-%m-%d')
-        except:
-            raise Http404
-        data = {
-            'current_day': current_day,
-            'previous_day': (current_day - timedelta(1)).strftime('%Y-%m-%d'),
-            'next_day': (current_day + timedelta(1)).strftime('%Y-%m-%d'),
-            'start_hour': start_hour,
-            'end_hour': end_hour,
-            'snap_hours': snap_hours,
-        }
-
-        # process form submission
-        if request.method == 'POST':
-            data['time_form'] = ProjectTimeForm(request.POST)
-            if data['time_form'].is_valid():
-                data['time_form'].save()
-                return HttpResponseRedirect(request.get_full_path())
-        else:
-            # get latest ProjectTime and use its project as the default
-            if ProjectTime.objects.count():
-                formData = {
-                    'project': ProjectTime.objects.all().order_by('-start')[0].project.id
-                }
-            else:
-                formData = {}
-            data['time_form'] = ProjectTimeForm(initial=formData) # An unbound form
-
-        day_start = current_day
-        day_end = current_day.replace(hour=23, minute=59, second=59)
-        view_start = current_day + timedelta(hours=start_hour)
-
-        time_qs = ProjectTime.objects.for_user(request.user).filter(
-            Q(start__range=(day_start, day_end)) |          # start today
-            Q(end__range=(day_start, day_end)) |            # working over midnight
-            (Q(start__lt=day_start) & Q(end__gt=day_end))   # spanned multiple days
-        ).order_by('start')
-
-        data['time_list'] = list(time_qs)
-        for project_time in data['time_list']:
-            # Make multi-day spanning items fit in the view
-            display_start = max(project_time.start, view_start)
-            display_end = min(project_time.end, day_end)
-
-            display_start_seconds = (display_start - display_start.replace(hour=0, minute=0, second=0)).seconds
-            display_height_seconds = (display_end - display_start).seconds
-            start_seconds = start_hour * 3600
-
-            project_time.display_info = {
-                'percentage_position': round((display_start_seconds - start_seconds) * 100 / total_seconds, 2),
-                'percentage_height': round(display_height_seconds * 100 / total_seconds, 2),
-                'also_yesterday': (project_time.start < day_start),
-                'also_tomorrow': (project_time.end > day_end),
-                'percentage_width': 100,
-                'percentage_left': 0,
-                'cols': 1,
-                'overlap_col': 0,
-            }
-
-        for project_time in data['time_list']:
-            start = project_time.start
-            end = project_time.end
-
-            for time2 in data['time_list']:
-                # start in between, or
-                # end in between
-                # totally spanned over
-                if start < time2.start < end \
-                or start < time2.end < end \
-                or (start < time2.start and time2.end < end):
-                    project_time.display_info['cols'] += 1
-                    time2.display_info['overlap_col'] += project_time.display_info['overlap_col'] + 1
-
-        for project_time in data['time_list']:
-            cols = float(project_time.display_info['cols'])
-            col = project_time.display_info['overlap_col']
-            if cols > 1:
-                project_time.display_info['percentage_width'] = int(100 / cols)
-                project_time.display_info['percentage_left'] = int(100 / cols) * (col - 1)
-
-        data['hour_dividers'] = []
-        for i in range(start_hour, end_hour):
-            data['hour_dividers'].append({'time': time_module(i, 0, 0).strftime('%H:%M'), 'percentage_position': (i - start_hour) * 100 / float(end_hour - start_hour)})
-
-        return render_to_response('projectmanager/time.html', data)
-
-
-@login_required
 def project_time_calendar(request):
     # get latest ProjectTime and use its project as the default
     formData = {}
@@ -143,7 +44,7 @@ def project_time_calendar(request):
         formData['project'] = ProjectTime.objects.all().order_by('-start')[0].project.id
     time_form = ProjectTimeForm(initial=formData)
 
-    return render_to_response('projectmanager/time2.html', {
+    return render_to_response('projectmanager/calendar.html', {
         'time_form': time_form,
     })
 
