@@ -22,7 +22,8 @@
 <div class="time_list" id="time_list">
 	<ul>
 	{% for time_item in time_list %}
-		<li style="top: {{ time_item.display_info.percentage_position }}%; height: {{ time_item.display_info.percentage_height }}%;" title="Start: {{ time_item.start|date:"h:i a" }}, End: {{ time_item.end|date:"h:i a" }}">
+		<li style="top: {{ time_item.display_info.percentage_position }}%; height: {{ time_item.display_info.percentage_height }}%;"
+		title="Start: {% if time_item.display_info.also_yesterday %}{{ time_item.start|date:"Y-m-d" }} {% endif %}{{ time_item.start|date:"h:i a" }}, End: {% if time_item.display_info.also_tomorrow %}{{ time_item.end|date:"Y-m-d" }} {% endif %}{{ time_item.end|date:"h:i a" }}">
 			{{ time_item }}
 			<a href="/projectmanager/projecttime/{{ time_item.id }}/">edit</a>
 		</li>

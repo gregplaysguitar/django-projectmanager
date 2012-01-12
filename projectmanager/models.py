@@ -146,14 +146,14 @@ class ProjectTime(models.Model):
     
     def get_absolute_url(self):
         return "/time/%s-%s-%s/" % (self.start.year, self.start.month, self.start.day)
-    
-    def save(self, force_insert=False, force_update=False):
+
+    def save(self, force_insert=False, force_update=False, using=None):
         self.start = round_datetime(self.start)
         self.end = round_datetime(self.end)
         
         self._time = str((self.total_time().days * 24 + self.total_time().seconds / 3600) + (((0.0 + self.total_time().seconds / 60) % 60) / 60))
 
-        super(ProjectTime, self).save(force_insert, force_update)
+        super(ProjectTime, self).save(force_insert, force_update, using)
 
 
 def activate_project(sender, instance, **kwargs):
