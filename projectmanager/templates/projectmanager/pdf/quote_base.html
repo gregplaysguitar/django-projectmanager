@@ -79,8 +79,8 @@ li {
 	<tr>
 		<td>{{ row.detail }}</td>
 		<td>{{ row.quantity }}</td>
-		<td>${{ row.price }}</td>
-		<td>${{ row.amount }}</td>
+		<td>${{ row.price|floatformat:'-2' }}</td>
+		<td>${{ row.amount|floatformat:'-2' }}</td>
 	</tr>
 	{% endfor %}
 	
@@ -91,15 +91,15 @@ li {
 
 	<tr>
 		<td>Subtotal:</td>
-		<td>${{ quote.subtotal }}</td>
+		<td>${{ quote.subtotal|floatformat:'-2' }}</td>
 	</tr>
 	<tr>
 		<td>GST:</td>
-		<td>${{ quote.gst_amount }}</td>
+		<td>${{ quote.gst_amount|floatformat:'-2' }}</td>
 	</tr>
 	<tr class="bottom">
 		<th>TOTAL:</th>
-		<th>${{ quote.total }}</th>
+		<th>${{ quote.total|floatformat:'-2' }}</th>
 	</tr>
 	
 </table>

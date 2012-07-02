@@ -202,13 +202,13 @@ class Invoice(models.Model):
         return self.address
 
     def subtotal(self):
-        return sum(item.amount() for item in InvoiceRow.objects.filter(invoice=self))
+        return sum(float(row.amount()) for row in self.invoicerow_set.all())
     
     def gst_amount(self):
-        return round(float(self.subtotal()) * 0.15, 2)
+        return (float(self.subtotal()) * .15)
     
     def total(self):
-        return round(float(self.subtotal()) * 1.15, 2)
+        return (float(self.subtotal()) * 1.15)
     
     @models.permalink
     def get_absolute_url(self):
@@ -249,7 +249,7 @@ class InvoiceRow(models.Model):
     #amount = models.DecimalField(max_digits=10, decimal_places=2)
 
     def amount(self):
-        return self.price * self.quantity
+        return (self.price * self.quantity)
 
     def __unicode__(self):
         return "%s on %s (%s)" % (self.amount(), self.project.name, self.invoice.creation_date.strftime('%d/%m/%Y'))
@@ -410,13 +410,13 @@ class Quote(models.Model):
         return "Quote %s - %s - %s.pdf" % (self.creation_date.strftime("%Y-%m-%d"), self.client, self.description)
     
     def subtotal(self):
-        return sum(row.amount() for row in self.quoterow_set.all())
+        return sum(float(row.amount()) for row in self.quoterow_set.all())
     
     def gst_amount(self):
-        return round(float(self.subtotal()) * 0.15, 2)
+        return (float(self.subtotal()) * .15)
     
     def total(self):
-        return round(float(self.subtotal()) * 1.15, 2)
+        return (float(self.subtotal()) * 1.15)
     
     @models.permalink
     def get_absolute_url(self):
@@ -430,7 +430,7 @@ class QuoteRow(models.Model):
     price = models.DecimalField(max_digits=10, decimal_places=2)
 
     def amount(self):
-        return self.price * self.quantity
+        return (self.price * self.quantity)
  
 
 
