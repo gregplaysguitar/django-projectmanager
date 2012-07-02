@@ -55,7 +55,7 @@ li {
 	<tr>
 		<td rowspan="2" colspan="2" valign="top">
 			{{ quote.client }}<br>
-			{{ quote.address|markdown2 }}
+			{{ quote.address|linebreaksbr }}
 		</td>
 		<th>GST Number:</th>
 		<th>{% block gst_number %}NUMBER{% endblock %}</th>
