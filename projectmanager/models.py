@@ -396,4 +396,45 @@ def create_invoice_for_hosting_clients(hostingclient_qs):
         invoice_list.append(new_invoice)
     
     return invoice_list
+
+
+class Quote(models.Model):
+    client = models.TextField()
+    description = models.CharField(max_length=50)
+    creation_date = models.DateTimeField(auto_now_add=True)
+
+    def pdf_filename(self):
+        return "Quote %s - %s - %s.pdf" % (self.creation_date.strftime("%Y-%m-%d"), self.client, self.description)
     
+    def subtotal(self):
+        return sum(row.amount() for row in self.quoterow_set.all())
+    
+    def gst_amount(self):
+        return round(float(self.subtotal()) * 0.15, 2)
+    
+    def total(self):
+        return round(float(self.subtotal()) * 1.15, 2)
+    
+    @models.permalink
+    def get_absolute_url(self):
+        return ('projectmanager.views.quote', [self.pk])
+
+
+class QuoteRow(models.Model):
+    quote = models.ForeignKey(Quote)
+    detail = models.CharField(max_length=255, blank=True)
+    quantity = models.DecimalField(max_digits=10, decimal_places=2)
+    price = models.DecimalField(max_digits=10, decimal_places=2)
+
+    def amount(self):
+        return self.price * self.quantity
+ 
+
+
+
+
+
+
+
+
+

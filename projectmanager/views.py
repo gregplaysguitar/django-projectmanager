@@ -2,7 +2,6 @@ from django.db.models.query_utils import Q
 from django.utils import simplejson
 from django.views.decorators.http import require_POST
 from jsonresponse import JsonResponse
-from projectmanager.models import Project, ProjectTime, Task, Invoice
 from django.shortcuts import render_to_response, get_object_or_404
 from django.http import HttpResponseRedirect, HttpResponse, Http404
 from datetime import time as time_module, datetime, timedelta
@@ -22,6 +21,7 @@ import cgi
 import csv
 
 from forms import ProjectTimeForm, AddTaskForm
+from models import Project, ProjectTime, Task, Invoice, Quote
 
 
 @login_required
@@ -208,6 +208,18 @@ def invoice(request, invoice_id, type='html'):
         return render_to_pdf('projectmanager/pdf/invoice.html', data)
     else:
         return render_to_response('projectmanager/pdf/invoice.html', data, context_instance=RequestContext(request))
+
+
+@login_required
+def quote(request, quote_id, type='html'):
+    data = {
+        'quote': get_object_or_404(Quote, pk=quote_id),
+        'type': type,
+    }
+    if type == 'pdf':
+        return render_to_pdf('projectmanager/pdf/quote.html', data)
+    else:
+        return render_to_response('projectmanager/pdf/quote.html', data, context_instance=RequestContext(request))
 
 
 

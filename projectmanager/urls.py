@@ -14,6 +14,9 @@ urlpatterns = patterns('projectmanager.views',
     (r'^invoice/(\d+)/$', 'invoice'),
     (r'^invoice/(\d+)/.+\.(pdf)$', 'invoice'),
 
+    (r'^quote/(\d+)/$', 'quote'),
+    (r'^quote/(\d+)/.+\.(pdf)$', 'quote'),
+
     (r'^itemise/(\d+)/$', 'projecttime_summary'),
 
     (r'^create_invoice_for_project/(\d+)/$', 'create_invoice_for_project'),
