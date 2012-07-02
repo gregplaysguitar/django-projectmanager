@@ -54,7 +54,8 @@ li {
 	</tr>
 	<tr>
 		<td rowspan="2" colspan="2" valign="top">
-			{{ quote.client|linebreaksbr }}
+			{{ quote.client }}<br>
+			{{ quote.address|linebreaksbr }}
 		</td>
 		<th>Contact:</th>
 		<th>{% block contact %}CONTACT{% endblock %}</th>

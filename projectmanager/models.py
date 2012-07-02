@@ -399,7 +399,8 @@ def create_invoice_for_hosting_clients(hostingclient_qs):
 
 
 class Quote(models.Model):
-    client = models.TextField()
+    client = models.CharField(max_length=50)
+    address = models.TextField(blank=True)
     description = models.CharField(max_length=50)
     creation_date = models.DateTimeField(auto_now_add=True)
     
