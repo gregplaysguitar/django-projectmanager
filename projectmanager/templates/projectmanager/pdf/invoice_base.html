@@ -2,7 +2,7 @@
 <html>
 
 <head>
-<title>Quote: {{ quote.description }}</title>
+<title>Invoice: {{ invoice.description }}</title>
 </head>
 
 <body>
@@ -38,32 +38,36 @@ li {
 
 <div id="wrap">
 
-<h1>Quote &mdash; {{ quote.description }}</h1>
+<h1>GST Invoice &mdash; {{ invoice.description }}</h1>
 
 {% ifnotequal type "pdf" %}
-<a href="{{ quote.pdf_filename }}">Download as pdf</a>
+<a href="{{ invoice.pdf_filename }}">Download as pdf</a>
 {% endifnotequal %}
 <hr>
 
 <table border="0" cellpadding="5" cellspacing="0">
 
 	<tr>
-		<th colspan="2">Client:</th>
-		<th>Quote from:</th>
+		<th colspan="2">Invoice to:</th>
+		<th>Invoice from:</th>
 		<th>{% block name %}NAME{% endblock %}</th>
 	</tr>
 	<tr>
-		<td rowspan="2" colspan="2" valign="top">
-			{{ quote.client|linebreaksbr }}
+		<td rowspan="3" colspan="2" valign="top">
+			{{ invoice.client }}<br>
+			{{ invoice.address|markdown2 }}
 		</td>
-		<th>Contact:</th>
-		<th>{% block contact %}CONTACT{% endblock %}</th>
+		<th>GST Number:</th>
+		<th>{% block gst_number %}GST NUMBER{% endblock %}</th>
 	</tr>
 	<tr>
-		<th>Quote date:</th>
-		<th>{{ quote.creation_date|date:"d/m/Y" }}</th>
+		<th>Invoice date:</th>
+		<th>{{ invoice.creation_date|date:"d/m/Y" }}</th>
 	</tr>
-
+	<tr>
+		<th>Invoice number:</th>
+		<th>{{ invoice.id }}</th>
+	</tr>
 	
 	<tr><td class="spacer" colspan="4"></td></tr>
 
@@ -74,7 +78,7 @@ li {
 		<th>Cost</th>
 	</tr>
 	
-	{% for row in quote.quoterow_set.all %}
+	{% for row in invoice.invoicerow_set.all %}
 	<tr>
 		<td>{{ row.detail }}</td>
 		<td>{{ row.quantity }}</td>
@@ -90,26 +94,25 @@ li {
 
 	<tr>
 		<td>Subtotal:</td>
-		<td>${{ quote.subtotal }}</td>
+		<td>${{ invoice.subtotal }}</td>
 	</tr>
 	<tr>
 		<td>GST:</td>
-		<td>${{ quote.gst_amount }}</td>
+		<td>${{ invoice.gst_amount }}</td>
 	</tr>
 	<tr class="bottom">
 		<th>TOTAL:</th>
-		<th>${{ quote.total }}</th>
+		<th>${{ invoice.total }}</th>
 	</tr>
 	
 </table>
 
-{% if quote.notes %}
-    <hr>
-    <br><br>
-    
-    <h3>Notes</h3>
-    {{ quote.notes|linebreaks %}
-{% endif %}
+<hr>
+<br><br>
+
+<h3>Payment options</h3>
+{% block payment_details %}PAYMENT DETAILS{% endblock %}
+
 
 </div>
 

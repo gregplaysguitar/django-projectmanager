@@ -402,6 +402,8 @@ class Quote(models.Model):
     client = models.TextField()
     description = models.CharField(max_length=50)
     creation_date = models.DateTimeField(auto_now_add=True)
+    
+    notes = models.TextField(blank=True, default='')
 
     def pdf_filename(self):
         return "Quote %s - %s - %s.pdf" % (self.creation_date.strftime("%Y-%m-%d"), self.client, self.description)
