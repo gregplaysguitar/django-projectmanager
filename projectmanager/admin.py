@@ -121,6 +121,7 @@ class TaskAdmin(RestrictedByUsers):
     list_filter = ('completed', 'creation_date', 'project', )
     list_display = ('project', 'task', 'estimated_hours', 'completed', 'completion_date', 'creation_date')
     search_fields = ('project__name', 'task', 'comments')
+    raw_id_fields = ('project',)
 admin.site.register(Task, TaskAdmin)
 
 
