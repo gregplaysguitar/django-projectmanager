@@ -32,7 +32,7 @@ class Project(models.Model):
     
     def __unicode__(self):
         if self.client:
-            return "%s, %s" % (self.client, self.name)
+            return "%s, (%s)" % (self.name, self.client)
         else:
             return self.name
     
