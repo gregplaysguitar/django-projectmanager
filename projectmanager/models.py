@@ -318,7 +318,7 @@ class HostingClient(models.Model):
         return bool(self.termination_date and self.termination_date < datetime.date.today())
     
     def total_expenses(self):
-        return sum(item.amount for item in self.hostingexpense_set.all())
+        return sum(item.amount for item in self.hostingexpense_set.filter(writeoff=False))
         
     def total_cost(self):
         if self.termination_date:
@@ -360,6 +360,7 @@ class HostingExpense(models.Model):
     amount = models.DecimalField(max_digits=10, decimal_places=2)
     description = models.TextField()
     hosting_client = models.ForeignKey(HostingClient)
+    writeoff = models.BooleanField(default=False)
 
     
     def description_truncated(self):
