@@ -199,7 +199,7 @@ class Invoice(models.Model):
         return "Invoice %s - %s - %s.pdf" % (self.creation_date.strftime("%Y-%m-%d"), self.client, self.description)
     
     def __unicode__(self):
-        return self.address
+        return '%s: %s' % (self.client, self.description)
 
     def subtotal(self):
         return sum(float(row.amount()) for row in self.invoicerow_set.all())
