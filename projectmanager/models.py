@@ -349,6 +349,7 @@ post_init.connect(hostingclient_prefill, sender=HostingClient)
 class HostingInvoiceRow(models.Model):
     hostingclient = models.ForeignKey(HostingClient)
     invoicerow = models.ForeignKey(InvoiceRow)
+    is_hosting = models.BooleanField(default=True)
     
     def __unicode__(self):
         return "%s, %s: $%s" % (self.hostingclient.client, self.hostingclient.name, self.invoicerow.amount())
@@ -376,7 +377,7 @@ def create_invoice_for_hosting_clients(hostingclient_qs):
     for hostingclient in hostingclient_qs.all():
         new_invoice = Invoice.objects.create(client=hostingclient.client, description="Website hosting")
         
-        periods_invoiced = HostingInvoiceRow.objects.filter(hostingclient=hostingclient).aggregate(models.Sum('invoicerow__quantity'))['invoicerow__quantity__sum'] or 0
+        periods_invoiced = HostingInvoiceRow.objects.filter(hostingclient=hostingclient, is_hosting=True).aggregate(models.Sum('invoicerow__quantity'))['invoicerow__quantity__sum'] or 0
         periods_to_invoice = periods_invoiced + decimal.Decimal(hostingclient.billing_frequency)
         
         year = int(hostingclient.start_date.year + int(hostingclient.start_date.month + periods_to_invoice) / 12)
