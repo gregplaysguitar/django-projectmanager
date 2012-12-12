@@ -26,19 +26,13 @@ class ProjectAdmin(RestrictedByUsers):
     def save_model(self, request, obj, form, **kwargs):
         obj.owner = request.user
         obj.save()
-        """
-        if not obj.users.filter(pk=obj.owner.pk).count():
-            obj.users.add(obj.owner)
-        print obj.users.all()
-        """
-    
+
     def make_completed(self, request, queryset):
         queryset.update(completed=True)
     
     def make_hidden(self, request, queryset):
         queryset.update(hidden=True)
     
-#    list_display = ('client', 'name', 'creation_date', 'total_time', 'hourly_rate', 'total_expenses', 'total_cost', 'total_invoiced', 'total_to_invoice', 'approx_hours_to_invoice', 'completed')
     list_display = ('name', 'client', 'total_estimated_hours', 'total_time', 'billing_type', 'total_invoiced', 'time_invoiced', 'total_to_invoice', 'approx_hours_to_invoice', 'completed', 'links', )
     list_display_links = ('client', 'name')
     list_filter = ('completed', 'creation_date', 'billable', 'hidden')

@@ -1,18 +1,42 @@
-from django.db import models
 import datetime, decimal
-from string_utils import smart_truncate
+
+from django.db import models
+from django.conf import settings
+from django.core.cache import cache
 from django.http import HttpResponseRedirect
 from django.db.models.signals import pre_save, post_save, post_init
 from django.contrib.auth.models import User
 from django.db.models import Q, Sum
+
+from string_utils import smart_truncate
+
 import settings as pm_settings
 import calendar
+
 
 class ForUserManager(models.Manager):
     def for_user(self, user):
         return self.get_query_set().filter(Q(users=user) | Q(owner=user))
-        
-        
+ 
+ 
+def cache_key(obj, key):
+    return '%s-%s-%s' % (settings.CACHE_MIDDLEWARE_KEY_PREFIX, key, obj.pk)
+
+def cached_method(duration=86400):
+    def decorator(func):
+        def inner(*args, **kwargs):
+            key = cache_key(args[0], func.__name__)
+            result = cache.get(key)
+            if result == None:
+                result = func(*args, **kwargs)
+                cache.set(key, result, duration)
+            return result
+        inner.__name__ = func.__name__
+        inner.__doc__ = func.__doc__
+        return inner
+    return decorator
+
+
 # Create your models here.
 class Project(models.Model):
     owner = models.ForeignKey(User, related_name='project_ownership_set')
@@ -36,13 +60,21 @@ class Project(models.Model):
         else:
             return self.name
     
+    def clear_cache(self):
+        for name in ('total_time', 'total_estimated_hours', 'total_expenses', \
+                     'time_invoiced', 'total_invoiced', 'total_cost', 'total_to_invoice', \
+                     'approx_hours_to_invoice'):
+            cache.delete(cache_key(self, name))
+        
     def pending_task_count(self):
         return self.task_set.filter(completed=False).count()
     
+    @cached_method()
     def total_time(self):
         delta = sum((item.total_time() for item in ProjectTime.objects.filter(project=self.id)), datetime.timedelta())
         return (delta.days * 24 + delta.seconds / 3600) + (((0.0 + delta.seconds / 60) % 60) / 60)
     
+    @cached_method()
     def total_estimated_hours(self, completed=False):
         tasks = self.task_set.all()
         if completed:
@@ -51,33 +83,33 @@ class Project(models.Model):
     
     total_estimated_hours.short_description = 'Est. hours'
     
-    """
-    def time_invoiced(self):
-        time = sum((invoice.hours for invoice in InvoiceRow.objects.filter(project=self.id)))
-        return float(time)#"%d:%d" % (time.floor(), ((time - time.floor()) * 60 / 100))
-    """
-    
+    @cached_method()
     def total_expenses(self):
         return float(sum(item.amount for item in ProjectExpense.objects.filter(project=self.id)))
-        
+    
+    @cached_method() 
     def time_invoiced(self):
         return float(sum(item.quantity for item in InvoiceRow.objects.filter(project=self) if item.is_time))
     time_invoiced.short_description = 'Hours'
     
+    @cached_method()
     def total_invoiced(self):
         return float(sum(item.amount() for item in InvoiceRow.objects.filter(project=self)))
     total_invoiced.short_description = 'Invoiced'
 
+    @cached_method()
     def total_cost(self):
         if self.billing_type == 'quote':
             return self.total_expenses() + float(self.total_estimated_hours(True) or 0) * float(self.hourly_rate)
         else:
             return self.total_expenses() + self.total_time() * float(self.hourly_rate)
     
+    @cached_method()
     def total_to_invoice(self):
         return self.total_cost() - self.total_invoiced()
     total_to_invoice.short_description = 'To invoice'
     
+    @cached_method()
     def approx_hours_to_invoice(self):
         if self.hourly_rate:
             return str(round(int(self.total_to_invoice() * 4) / self.hourly_rate) / 4)
@@ -96,17 +128,6 @@ class Project(models.Model):
             pass
         
         new_invoice = Invoice.objects.create(client=self.client, description=self.name)
-        """
-        print times
-        for time in times:
-            InvoiceRow.objects.create(
-                invoice=new_invoice,
-                project=time.project,
-                detail=project.name,
-                quantity=int(time.total_time()),
-                price=time.project.hourly_rate,
-            )
-        """
         return new_invoice
     
     @models.permalink
@@ -116,12 +137,17 @@ class Project(models.Model):
     class Meta:
         ordering = ('name',)
 
-    
+def clear_project_cache(sender, instance, **kwargs):
+    if isinstance(instance, Project):
+        instance.clear_cache()    
+    elif hasattr(instance, 'project') and isinstance(instance.project, Project):
+        instance.project.clear_cache()
+post_save.connect(clear_project_cache)
+
 
 class ForProjectUserManager(models.Manager):
     def for_user(self, user):
         return self.get_query_set().filter(Q(project__users=user) | Q(project__owner=user))
-        
 
 
 class ProjectTime(models.Model):
@@ -295,8 +321,8 @@ pre_save.connect(set_completion_date, sender=Task)
 
 
 class HostingClient(models.Model):
-    owner = models.ForeignKey(User, related_name='hostingclient_ownership_set', default=1)
-    users = models.ManyToManyField(User, related_name='hostingclient_membership_set', blank=True)
+    owner = models.ForeignKey(User, related_name='hosting_client_ownership_set', default=1)
+    users = models.ManyToManyField(User, related_name='hosting_client_membership_set', blank=True)
     client = models.CharField(max_length=200, blank=True)
     name = models.CharField(max_length=200)
     slug = models.CharField(max_length=60, unique=True)
@@ -316,10 +342,12 @@ class HostingClient(models.Model):
     hidden = models.BooleanField(default=False, editable=False)
     def _hidden(self):
         return bool(self.termination_date and self.termination_date < datetime.date.today())
-    
+
+    @cached_method()
     def total_expenses(self):
         return sum(item.amount for item in self.hostingexpense_set.all())
         
+    @cached_method()
     def total_cost(self):
         if self.termination_date:
             end = self.termination_date
@@ -328,12 +356,18 @@ class HostingClient(models.Model):
         months = end.month - self.start_date.month + (end.year - self.start_date.year) * 12
         return self.total_expenses() + months * self.period_fee
     
+    @cached_method()
     def total_paid(self):
         return sum(r.amount() for r in self.invoice_rows.filter(invoice__paid=True))
 
+    @cached_method()
     def total_invoiced(self):
         return sum(r.amount() for r in self.invoice_rows.all())
-
+        
+    def clear_cache(self):
+        for name in ('total_expenses', 'total_cost', 'total_paid', 'total_invoiced'):
+            cache.delete(cache_key(self, name))
+        
     def __unicode__(self):
         return "%s - %s" % (self.client, self.name)
     
@@ -346,12 +380,20 @@ def hostingclient_prefill(sender, *args, **kwargs):
 pre_save.connect(hostingclient_prefill, sender=HostingClient)
 post_init.connect(hostingclient_prefill, sender=HostingClient)
 
+def clear_hostingclient_cache(sender, instance, **kwargs):
+    if isinstance(instance, HostingClient):
+        instance.clear_cache()    
+    elif hasattr(instance, 'hosting_client') and isinstance(instance.hosting_client, HostingClient):
+        instance.hosting_client.clear_cache()
+post_save.connect(clear_hostingclient_cache)
+
+
 class HostingInvoiceRow(models.Model):
-    hostingclient = models.ForeignKey(HostingClient)
+    hosting_client = models.ForeignKey(HostingClient)
     invoicerow = models.ForeignKey(InvoiceRow)
     
     def __unicode__(self):
-        return "%s, %s: $%s" % (self.hostingclient.client, self.hostingclient.name, self.invoicerow.amount())
+        return "%s, %s: $%s" % (self.hosting_client.client, self.hosting_client.name, self.invoicerow.amount())
         
 
 class HostingExpense(models.Model):
