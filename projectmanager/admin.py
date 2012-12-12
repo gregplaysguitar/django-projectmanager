@@ -1,8 +1,11 @@
-from projectmanager.models import *
 from django.contrib import admin
+from django.db import models
 from django.utils.safestring import mark_safe
-from admin_restricted import RestrictedByUsers
 from django.core import urlresolvers
+
+from admin_restricted import RestrictedByUsers
+
+from projectmanager.models import *
 
 
 class ProjectExpenseInline(admin.TabularInline):
@@ -39,10 +42,10 @@ class ProjectAdmin(RestrictedByUsers):
         queryset.update(hidden=True)
     
 #    list_display = ('client', 'name', 'creation_date', 'total_time', 'hourly_rate', 'total_expenses', 'total_cost', 'total_invoiced', 'total_to_invoice', 'approx_hours_to_invoice', 'completed')
-    list_display = ('name', 'client', 'total_estimated_hours', 'total_time', 'billing_type', 'total_invoiced', 'time_invoiced', 'total_to_invoice', 'approx_hours_to_invoice', 'completed', 'links', )
+    list_display = ('name', 'client', 'total_estimated_hours', 'total_time', 'billing_type', 'total_invoiced', 'time_invoiced', 'unbilled_time', 'total_to_invoice', 'approx_hours_to_invoice', 'completed', 'links', )
     list_display_links = ('client', 'name')
-    list_filter = ('completed', 'creation_date', 'billable', 'hidden')
-    search_fields = ('name', 'client', 'slug', 'description', 'projectexpense__description')
+    list_filter = ('completed', 'creation_date', 'billable', 'hidden', 'client')
+    search_fields = ('name', 'client', 'slug', 'description')
     prepopulated_fields = {
         'slug': ('client', 'name',)
     }
@@ -50,6 +53,9 @@ class ProjectAdmin(RestrictedByUsers):
     actions = ['create_invoice_for_selected', 'make_completed', 'make_hidden']
     exclude = ('owner', )
     
+    def unbilled_time(self, obj):
+        return max(0, obj.total_time() - obj.time_invoiced())
+
     def create_invoice(self, instance):
         return u'<a href="/create_invoice_for_project/%d/">create</a>' % (instance.id)
 
@@ -97,8 +103,17 @@ class InvoiceAdmin(RestrictedByUsers):
     list_filter = ('projects', 'creation_date', 'paid')
     inlines = [InvoiceRowInline,]
     actions = ['make_paid',]
-    search_fields = ['client', 'email', 'description', 'address', 'invoicerow__detail']
+    search_fields = ['client', 'email', 'description', 'address']
     
+    def queryset(self, request):
+        qs = super(InvoiceAdmin, self).queryset(request)
+        qs = qs.annotate(quantity_sum=models.Sum('invoicerow__quantity'))
+        return qs
+    
+    def subtotal(self, obj):
+        return obj.subtotal()
+    subtotal.admin_order_field = 'subtotal_order'
+
     def make_paid(self, request, queryset):
         queryset.update(paid=True)
 
@@ -164,7 +179,7 @@ admin.site.register(HostingClient, HostingClientAdmin)
 
 
 admin.site.register(InvoiceRow, 
-    search_fields = ('invoice__description', 'invoice__client', 'detail'),
+    search_fields = ('invoice__client', 'detail'),
     list_display = ('project', 'invoice', 'amount', 'detail', 'invoice_date'),
     list_filter = ('project', 'invoice', ),
 )
