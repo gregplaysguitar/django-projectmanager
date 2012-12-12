@@ -225,7 +225,7 @@ class Invoice(models.Model):
         return "Invoice %s - %s - %s.pdf" % (self.creation_date.strftime("%Y-%m-%d"), self.client, self.description)
     
     def __unicode__(self):
-        return self.address
+        return '%s: %s' % (self.client, self.description)
 
     def subtotal(self):
         return sum(float(row.amount()) for row in self.invoicerow_set.all())
@@ -345,7 +345,7 @@ class HostingClient(models.Model):
 
     @cached_method()
     def total_expenses(self):
-        return sum(item.amount for item in self.hostingexpense_set.all())
+        return sum(item.amount for item in self.hostingexpense_set.filter(writeoff=False))
         
     @cached_method()
     def total_cost(self):
@@ -391,6 +391,7 @@ post_save.connect(clear_hostingclient_cache)
 class HostingInvoiceRow(models.Model):
     hosting_client = models.ForeignKey(HostingClient)
     invoicerow = models.ForeignKey(InvoiceRow)
+    is_hosting = models.BooleanField(default=True)
     
     def __unicode__(self):
         return "%s, %s: $%s" % (self.hosting_client.client, self.hosting_client.name, self.invoicerow.amount())
@@ -401,6 +402,7 @@ class HostingExpense(models.Model):
     amount = models.DecimalField(max_digits=10, decimal_places=2)
     description = models.TextField()
     hosting_client = models.ForeignKey(HostingClient)
+    writeoff = models.BooleanField(default=False)
 
     
     def description_truncated(self):
@@ -418,7 +420,7 @@ def create_invoice_for_hosting_clients(hostingclient_qs):
     for hostingclient in hostingclient_qs.all():
         new_invoice = Invoice.objects.create(client=hostingclient.client, description="Website hosting")
         
-        periods_invoiced = HostingInvoiceRow.objects.filter(hostingclient=hostingclient).aggregate(models.Sum('invoicerow__quantity'))['invoicerow__quantity__sum'] or 0
+        periods_invoiced = HostingInvoiceRow.objects.filter(hostingclient=hostingclient, is_hosting=True).aggregate(models.Sum('invoicerow__quantity'))['invoicerow__quantity__sum'] or 0
         periods_to_invoice = periods_invoiced + decimal.Decimal(hostingclient.billing_frequency)
         
         year = int(hostingclient.start_date.year + int(hostingclient.start_date.month + periods_to_invoice) / 12)
