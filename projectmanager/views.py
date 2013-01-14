@@ -231,16 +231,16 @@ def projecttime_summary(request, project_pk):
 
     writer = csv.writer(response)
     writer.writerow([
+        'Date',
         'Time',
         'Description',
-        'Date',
     ])
 
     for projecttime in project.projecttime_set.all().order_by('start'):
         writer.writerow([
+            projecttime.start.date(),
             "%sh" % projecttime.total_time(),
             unicode(projecttime.description),
-            projecttime.start,
         ])
 
 
