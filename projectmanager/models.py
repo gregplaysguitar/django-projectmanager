@@ -106,7 +106,7 @@ class Project(models.Model):
     
     @cached_method()
     def total_to_invoice(self):
-        return self.total_cost() - self.total_invoiced()
+        return max(0, self.total_cost() - self.total_invoiced())
     total_to_invoice.short_description = 'To invoice'
     
     @cached_method()
