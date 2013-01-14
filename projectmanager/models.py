@@ -420,7 +420,7 @@ def create_invoice_for_hosting_clients(hostingclient_qs):
     for hostingclient in hostingclient_qs.all():
         new_invoice = Invoice.objects.create(client=hostingclient.client, description="Website hosting")
         
-        periods_invoiced = HostingInvoiceRow.objects.filter(hostingclient=hostingclient, is_hosting=True).aggregate(models.Sum('invoicerow__quantity'))['invoicerow__quantity__sum'] or 0
+        periods_invoiced = HostingInvoiceRow.objects.filter(hosting_client=hostingclient, is_hosting=True).aggregate(models.Sum('invoicerow__quantity'))['invoicerow__quantity__sum'] or 0
         periods_to_invoice = periods_invoiced + decimal.Decimal(hostingclient.billing_frequency)
         
         year = int(hostingclient.start_date.year + int(hostingclient.start_date.month + periods_to_invoice) / 12)
@@ -436,7 +436,7 @@ def create_invoice_for_hosting_clients(hostingclient_qs):
             price=hostingclient.period_fee,
         )
         
-        HostingInvoiceRow.objects.create(invoicerow=new_row, hostingclient=hostingclient)
+        HostingInvoiceRow.objects.create(invoicerow=new_row, hosting_client=hostingclient)
         invoice_list.append(new_invoice)
     
     return invoice_list
