@@ -1,4 +1,5 @@
 import datetime, decimal
+import hashlib
 
 from django.db import models
 from django.conf import settings
@@ -19,13 +20,17 @@ class ForUserManager(models.Manager):
         return self.get_query_set().filter(Q(users=user) | Q(owner=user))
  
  
-def cache_key(obj, key):
-    return '%s-%s-%s' % (settings.CACHE_MIDDLEWARE_KEY_PREFIX, key, obj.pk)
+def cache_key(obj, func_name, *args, **kwargs):
+    key = [settings.CACHE_MIDDLEWARE_KEY_PREFIX, func_name, str(obj.pk)]
+    for extra in (args, kwargs):
+        if len(extra):
+            key.append(hashlib.sha1(str(extra)).hexdigest()[:8])
+    return '-'.join(key)
 
 def cached_method(duration=86400):
     def decorator(func):
         def inner(*args, **kwargs):
-            key = cache_key(args[0], func.__name__)
+            key = cache_key(args[0], func.__name__, *args[1:], **kwargs)
             result = cache.get(key)
             if result == None:
                 result = func(*args, **kwargs)
