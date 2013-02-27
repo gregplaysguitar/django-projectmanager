@@ -25,7 +25,11 @@ class TaskInline(admin.TabularInline):
 class ProjectAdmin(RestrictedByUsers):
     user_field = 'owner'
     is_many_field = False
-
+    
+    def queryset(self, request):
+        qs = super(ProjectAdmin, self).queryset(request)
+        return qs.annotate(latest_time=models.Max('projecttime__start'))
+        
     def save_model(self, request, obj, form, **kwargs):
         obj.owner = request.user
         obj.save()
@@ -36,7 +40,7 @@ class ProjectAdmin(RestrictedByUsers):
     def make_hidden(self, request, queryset):
         queryset.update(hidden=True)
     
-    list_display = ('name', 'client', 'total_estimated_hours', 'total_time', 'billing_type', 'total_invoiced', 'time_invoiced', 'unbilled_time', 'total_to_invoice', 'approx_hours_to_invoice', 'completed', 'links', )
+    list_display = ('name', 'client', 'total_estimated_hours', 'total_time', 'latest_time', 'billing_type', 'total_invoiced', 'time_invoiced', 'unbilled_time', 'total_to_invoice', 'approx_hours_to_invoice', 'completed', 'links', )
     list_display_links = ('client', 'name')
     list_filter = ('completed', 'creation_date', 'billable', 'hidden', 'client')
     search_fields = ('name', 'client', 'slug', 'description')
@@ -49,7 +53,14 @@ class ProjectAdmin(RestrictedByUsers):
     
     def unbilled_time(self, obj):
         return max(0, obj.total_time() - obj.time_invoiced())
-
+    
+    def latest_time(self, obj):
+        try:
+            return obj.projecttime_set.all().order_by('-start')[0].start.date()
+        except IndexError:
+            return None
+    latest_time.admin_order_field = 'latest_time'
+        
     def create_invoice(self, instance):
         return u'<a href="/create_invoice_for_project/%d/">create</a>' % (instance.id)
 
