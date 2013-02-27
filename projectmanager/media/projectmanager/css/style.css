@@ -234,3 +234,8 @@ div.sidebar {
     width: 100px;
 }
 
+
+#task_set-group textarea {
+    width: 320px;
+    height: 50px;
+}
