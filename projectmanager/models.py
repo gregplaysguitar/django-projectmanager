@@ -47,6 +47,10 @@ def cached_method(duration=86400):
     return decorator
 
 
+def sum_projecttime_hours(projecttimes):
+    delta = sum((item.total_time() for item in projecttimes), datetime.timedelta())
+    return (delta.days * 24 + delta.seconds / 3600) + (((0.0 + delta.seconds / 60) % 60) / 60)
+
 # Create your models here.
 class Project(models.Model):
     owner = models.ForeignKey(User, related_name='project_ownership_set')
@@ -94,8 +98,7 @@ class Project(models.Model):
     
     #@cached_method()
     def billable_non_task_time(self):
-        delta = sum((item.total_time() for item in self.unbilled_projecttime()), datetime.timedelta())
-        return (delta.days * 24 + delta.seconds / 3600) + (((0.0 + delta.seconds / 60) % 60) / 60)
+       return sum_projecttime_hours( self.unbilled_projecttime())
     
     #@cached_method()
     def total_billable(self):
@@ -103,8 +106,7 @@ class Project(models.Model):
     
     @cached_method()
     def total_time(self):
-        delta = sum((item.total_time() for item in self.projecttime_set.all()), datetime.timedelta())
-        return (delta.days * 24 + delta.seconds / 3600) + (((0.0 + delta.seconds / 60) % 60) / 60)
+       return sum_projecttime_hours( self.projecttime_set.all())
     
     @cached_method()
     def total_estimated_hours(self, completed=False):
