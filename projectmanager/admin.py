@@ -98,7 +98,7 @@ admin.site.register(ProjectTime, ProjectTimeAdmin)
 class InvoiceRowInline(admin.TabularInline):
     model = InvoiceRow
     extra = 2
-    raw_id_fields = ('project',)
+    raw_id_fields = ('project', 'tasks', 'time')
 
 class InvoiceAdmin(RestrictedByUsers):
     user_field = 'project__owner'
