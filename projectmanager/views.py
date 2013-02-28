@@ -40,8 +40,8 @@ def index(request):
 def project_time_calendar(request):
     # get latest ProjectTime and use its project as the default
     formData = {}
-    if ProjectTime.objects.count():
-        formData['project'] = ProjectTime.objects.all().order_by('-start')[0].project.id
+    #if ProjectTime.objects.count():
+    #    formData['project'] = ProjectTime.objects.all().order_by('-start')[0].project.id
     time_form = ProjectTimeForm(initial=formData)
 
     return render_to_response('projectmanager/calendar.html', {
@@ -96,6 +96,21 @@ def api_project_time_move(request):
     })
 
 
+def form_errors_as_string(form):
+    if form.errors:
+        errors = []
+
+        if '__all__' in form.errors:
+            errors.append(', '.join(form.errors['__all__']))
+        for i in form.fields.keys():
+            if i in form.errors:
+                errors.append("%s: %s" % (form[i].label, ', '.join(form.errors[i])))
+
+        return '\n'.join(['- %s' % e for e in errors])
+    else:
+        return None
+
+
 def _api_project_time_form(form):
     if form.is_valid():
         projecttime = form.save()
@@ -106,7 +121,7 @@ def _api_project_time_form(form):
     else:
         return JsonResponse({
             'status': False,
-            'errors': form.errors
+            'errors': form_errors_as_string(form),
         })
 
 

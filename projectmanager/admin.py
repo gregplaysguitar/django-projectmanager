@@ -30,9 +30,9 @@ class ProjectAdmin(RestrictedByUsers):
         qs = super(ProjectAdmin, self).queryset(request)
         return qs.annotate(latest_time=models.Max('projecttime__start'))
         
-    def save_model(self, request, obj, form, **kwargs):
+    def save_model(self, request, obj, *args, **kwargs):
         obj.owner = request.user
-        obj.save()
+        super(ProjectAdmin, self).save_model(request, obj, *args, **kwargs)
 
     def make_completed(self, request, queryset):
         queryset.update(completed=True)
@@ -40,9 +40,9 @@ class ProjectAdmin(RestrictedByUsers):
     def make_hidden(self, request, queryset):
         queryset.update(hidden=True)
     
-    list_display = ('name', 'client', 'total_estimated_hours', 'total_time', 'latest_time', 'billing_type', 'total_invoiced', 'time_invoiced', 'unbilled_time', 'total_to_invoice', 'approx_hours_to_invoice', 'completed', 'links', )
+    list_display = ('name', 'client', 'billing_type', 'total_estimated_hours', 'total_time', 'billable_task_time', 'billable_non_task_time', 'latest_time', 'total_invoiced', 'time_invoiced', 'unbilled_time', 'total_to_invoice', 'approx_hours_to_invoice', 'completed', 'links', )
     list_display_links = ('client', 'name')
-    list_filter = ('completed', 'creation_date', 'billable', 'hidden', 'client')
+    list_filter = ('completed', 'creation_date', 'billable', 'hidden', 'client', 'billing_type')
     search_fields = ('name', 'client', 'slug', 'description')
     prepopulated_fields = {
         'slug': ('client', 'name',)
@@ -90,7 +90,7 @@ class ProjectTimeAdmin(RestrictedByUsers):
     list_filter = ('project', 'start')
     search_fields = ('description',)
     date_hierarchy = 'start'
-    raw_id_fields = ('project',)
+    raw_id_fields = ('project', 'task')
 
 admin.site.register(ProjectTime, ProjectTimeAdmin)
 
@@ -143,9 +143,6 @@ class TaskAdmin(RestrictedByUsers):
     search_fields = ('project__name', 'task', 'comments')
     raw_id_fields = ('project',)
 admin.site.register(Task, TaskAdmin)
-
-
-
 
 
 class HostingInvoiceRowInline(admin.TabularInline):

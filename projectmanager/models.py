@@ -4,6 +4,7 @@ import hashlib
 from django.db import models
 from django.conf import settings
 from django.core.cache import cache
+from django.core.exceptions import ValidationError
 from django.http import HttpResponseRedirect
 from django.db.models.signals import pre_save, post_save, post_init
 from django.contrib.auth.models import User
@@ -59,7 +60,7 @@ class Project(models.Model):
     billable = models.BooleanField(default=1, db_index=True)
     hourly_rate = models.DecimalField(max_digits=10, decimal_places=2, default=80)
     creation_date = models.DateTimeField(auto_now_add=True)
-    billing_type = models.CharField(max_length=5, choices=(('quote', 'Quote'), ('time', 'Time'),), default='quote')
+    billing_type = models.CharField(max_length=5, choices=(('quote', 'Quote'), ('time', 'Time'),), blank=True)
     
     objects = ForUserManager()
     
@@ -78,9 +79,31 @@ class Project(models.Model):
     def pending_task_count(self):
         return self.task_set.filter(completed=False).count()
     
+    #@cached_method()
+    def unbilled_tasks(self):
+        return self.task_set.filter(invoicerow__isnull=True, completed=True)
+    
+    #@cached_method()
+    def billable_task_time(self):
+        return sum([t.estimated_hours for t in self.unbilled_tasks()])
+    
+    #@cached_method()
+    def unbilled_projecttime(self):
+        t = self.projecttime_set.exclude(invoicerow__isnull=True).filter(task__isnull=True)
+        return self.projecttime_set.filter(invoicerow__isnull=True, task__isnull=True)
+    
+    #@cached_method()
+    def billable_non_task_time(self):
+        delta = sum((item.total_time() for item in self.unbilled_projecttime()), datetime.timedelta())
+        return (delta.days * 24 + delta.seconds / 3600) + (((0.0 + delta.seconds / 60) % 60) / 60)
+    
+    #@cached_method()
+    def total_billable(self):
+        return self.billable_task_time() + self.billable_non_task_time()
+    
     @cached_method()
     def total_time(self):
-        delta = sum((item.total_time() for item in ProjectTime.objects.filter(project=self.id)), datetime.timedelta())
+        delta = sum((item.total_time() for item in self.projecttime_set.all()), datetime.timedelta())
         return (delta.days * 24 + delta.seconds / 3600) + (((0.0 + delta.seconds / 60) % 60) / 60)
     
     @cached_method()
@@ -166,10 +189,14 @@ class ProjectTime(models.Model):
     description = models.TextField()
     project = models.ForeignKey(Project)
     _time = models.DecimalField(max_digits=4, decimal_places=2, null=True, editable=False)
+    task = models.ForeignKey('Task', blank=True, null=True)
 
     objects = ForProjectUserManager()
-
     
+    def clean(self):
+        if self.task and self.project and self.task.project != self.project:
+            raise ValidationError('That task is not part of that project')
+     
     def description_truncated(self):
         return smart_truncate(self.description, 100)
     
@@ -254,13 +281,39 @@ class Invoice(models.Model):
 def create_invoice_for_projects(project_qs):
     new_invoice = Invoice.objects.create(client=project_qs.all()[0].client)
     for project in project_qs.all():
-        InvoiceRow.objects.create(
-            invoice=new_invoice,
-            project=project,
-            detail=project.name,
-            quantity=project.approx_hours_to_invoice(),
-            price=project.hourly_rate,
-        )
+        if not project.billing_type:
+            # new style
+            
+            if project.billable_task_time():
+                detail = ', '.join([t.task for t in project.unbilled_tasks()])
+                row = InvoiceRow.objects.create(
+                    invoice=new_invoice,
+                    project=project,
+                    detail='%s: %s' % (project.name, detail),
+                    quantity=project.billable_task_time(),
+                    price=project.hourly_rate,
+                )
+                [row.tasks.add(t) for t in project.unbilled_tasks()]
+            
+            if project.billable_non_task_time():
+                row = InvoiceRow.objects.create(
+                    invoice=new_invoice,
+                    project=project,
+                    detail='%s: time' % (project.name),
+                    quantity=project.billable_non_task_time(),
+                    price=project.hourly_rate,
+                )
+                [row.time.add(t) for t in project.unbilled_projecttime()]
+            
+        else:
+            # legacy style
+            InvoiceRow.objects.create(
+                invoice=new_invoice,
+                project=project,
+                detail=project.name,
+                quantity=project.approx_hours_to_invoice(),
+                price=project.hourly_rate,
+            )
         
     
     return new_invoice
@@ -282,7 +335,10 @@ class InvoiceRow(models.Model):
     quantity = models.DecimalField(max_digits=10, decimal_places=2)
     price = models.DecimalField(max_digits=10, decimal_places=2)
     #amount = models.DecimalField(max_digits=10, decimal_places=2)
-
+    
+    tasks = models.ManyToManyField('Task', null=True, editable=True)
+    time = models.ManyToManyField('ProjectTime', null=True, editable=True)
+    
     def amount(self):
         return (self.price * self.quantity)
 
@@ -419,9 +475,6 @@ class HostingExpense(models.Model):
     
     def __unicode__(self):
         return "%s: %s (%s)" % (self.hosting_client.name, self.description, self.amount)
-    
-
-
 
 
 def create_invoice_for_hosting_clients(hostingclient_qs):

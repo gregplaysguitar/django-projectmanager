@@ -1,4 +1,5 @@
 {% extends "admin/base_site.html" %}
+{% load url from future %}
 
 {% block title %}
     {{ current_day|date:"l, j F Y" }}
@@ -25,7 +26,7 @@
 			<td><input type="submit" value="Submit" id="add_time_submit"><input type="button" value="Cancel" id="add_time_cancel" /></td>
 		</tr>
 	</table>
-<a href="{% url admin:projectmanager_projecttime_delete 0 %}" class="delete">Delete entry</a>
+<a href="{% url 'admin:projectmanager_projecttime_delete' 0 %}" class="delete">Delete entry</a>
 </fieldset>
 </form>
 
@@ -161,10 +162,10 @@
 
     function displayFormErrors(errors)
     {
-      var msg = '';
-      for( var fieldname in errors )
-        msg += fieldname + ": " + errors[fieldname];
-      alert(msg);
+      // var msg = '';
+      // for( var fieldname in errors )
+      //   msg += fieldname + ": " + errors[fieldname];
+      alert(errors);
     };
 
 
