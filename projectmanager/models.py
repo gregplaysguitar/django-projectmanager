@@ -300,7 +300,7 @@ def create_invoice_for_projects(project_qs):
                     invoice=new_invoice,
                     project=project,
                     detail='%s: time' % (project.name),
-                    quantity=project.billable_non_task_time(),
+                    quantity=decimal.Decimal(str(project.billable_non_task_time())),
                     price=project.hourly_rate,
                 )
                 [row.time.add(t) for t in project.unbilled_projecttime()]
@@ -336,8 +336,8 @@ class InvoiceRow(models.Model):
     price = models.DecimalField(max_digits=10, decimal_places=2)
     #amount = models.DecimalField(max_digits=10, decimal_places=2)
     
-    tasks = models.ManyToManyField('Task', null=True, editable=True)
-    time = models.ManyToManyField('ProjectTime', null=True, editable=True)
+    tasks = models.ManyToManyField('Task', null=True, blank=True)
+    time = models.ManyToManyField('ProjectTime', null=True, blank=True)
     
     def amount(self):
         return (self.price * self.quantity)
