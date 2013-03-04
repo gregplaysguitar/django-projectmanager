@@ -83,30 +83,29 @@ class Project(models.Model):
     def pending_task_count(self):
         return self.task_set.filter(completed=False).count()
     
-    #@cached_method()
+    @cached_method()
     def unbilled_tasks(self):
         return self.task_set.filter(invoicerow__isnull=True, completed=True)
     
-    #@cached_method()
+    @cached_method()
     def billable_task_time(self):
         return sum([t.estimated_hours for t in self.unbilled_tasks()])
     
-    #@cached_method()
+    @cached_method()
     def unbilled_projecttime(self):
-        t = self.projecttime_set.exclude(invoicerow__isnull=True).filter(task__isnull=True)
         return self.projecttime_set.filter(invoicerow__isnull=True, task__isnull=True)
     
-    #@cached_method()
+    @cached_method()
     def billable_non_task_time(self):
-       return sum_projecttime_hours( self.unbilled_projecttime())
+       return sum_projecttime_hours(self.unbilled_projecttime())
     
-    #@cached_method()
+    @cached_method()
     def total_billable(self):
         return self.billable_task_time() + self.billable_non_task_time()
     
     @cached_method()
     def total_time(self):
-       return sum_projecttime_hours( self.projecttime_set.all())
+       return sum_projecttime_hours(self.projecttime_set.all())
     
     @cached_method()
     def total_estimated_hours(self, completed=False):

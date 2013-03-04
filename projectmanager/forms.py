@@ -16,6 +16,7 @@ class ProjectTimeForm(forms.ModelForm):
         self.fields.keyOrder = self.Meta.fields
         
         self.fields['project'].choices = get_project_choices()
+        self.fields['task'].queryset = Task.objects.filter(completed=False)
         self.fields['task'].required = False
         self.fields['description'].required = False
     
