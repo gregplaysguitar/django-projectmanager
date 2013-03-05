@@ -347,7 +347,7 @@ class InvoiceRow(models.Model):
     
     @property
     def is_time(self):
-        return (self.is_time or self.projecttime_set.count() or self.task_set.count())
+        return (self._is_time or self.projecttime_set.count() or self.task_set.count())
 
     def invoice_date(self):
         return datetime.date(self.invoice.creation_date.year, self.invoice.creation_date.month, self.invoice.creation_date.day)
