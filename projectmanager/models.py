@@ -334,7 +334,7 @@ class InvoiceRow(models.Model):
     quantity = models.DecimalField(max_digits=10, decimal_places=2)
     price = models.DecimalField(max_digits=10, decimal_places=2)
     #amount = models.DecimalField(max_digits=10, decimal_places=2)
-    is_time = models.BooleanField(default=False, editable=False)
+    _is_time = models.BooleanField(default=False, editable=False)
     
     tasks = models.ManyToManyField('Task', null=True, blank=True, related_name='invoicerow_old')
     time = models.ManyToManyField('ProjectTime', null=True, blank=True, related_name='invoicerow_old')
