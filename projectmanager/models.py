@@ -334,6 +334,7 @@ class InvoiceRow(models.Model):
     quantity = models.DecimalField(max_digits=10, decimal_places=2)
     price = models.DecimalField(max_digits=10, decimal_places=2)
     #amount = models.DecimalField(max_digits=10, decimal_places=2)
+    is_time = models.BooleanField(default=False, editable=False)
     
     tasks = models.ManyToManyField('Task', null=True, blank=True, related_name='invoicerow_old')
     time = models.ManyToManyField('ProjectTime', null=True, blank=True, related_name='invoicerow_old')
@@ -343,13 +344,10 @@ class InvoiceRow(models.Model):
 
     def __unicode__(self):
         return "%s on %s (%s)" % (self.amount(), self.project.name, self.invoice.creation_date.strftime('%d/%m/%Y'))
-        
     
-    # assume its time if the rate is the same as the project rate - dubious yes, maybe
-    # this should be a db field populated on creation?
     @property
     def is_time(self):
-        return (self.projecttime_set.count() or self.task_set.count())
+        return (self.is_time or self.projecttime_set.count() or self.task_set.count())
 
     def invoice_date(self):
         return datetime.date(self.invoice.creation_date.year, self.invoice.creation_date.month, self.invoice.creation_date.day)
