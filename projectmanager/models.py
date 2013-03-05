@@ -191,6 +191,7 @@ class ProjectTime(models.Model):
     project = models.ForeignKey(Project)
     _time = models.DecimalField(max_digits=4, decimal_places=2, null=True, editable=False)
     task = models.ForeignKey('Task', blank=True, null=True)
+    invoicerow = models.ForeignKey('InvoiceRow', blank=True, null=True)
 
     objects = ForProjectUserManager()
     
@@ -337,8 +338,8 @@ class InvoiceRow(models.Model):
     price = models.DecimalField(max_digits=10, decimal_places=2)
     #amount = models.DecimalField(max_digits=10, decimal_places=2)
     
-    tasks = models.ManyToManyField('Task', null=True, blank=True)
-    time = models.ManyToManyField('ProjectTime', null=True, blank=True)
+    tasks = models.ManyToManyField('Task', null=True, blank=True, related_name='invoicerow_old')
+    time = models.ManyToManyField('ProjectTime', null=True, blank=True, related_name='invoicerow_old')
     
     def amount(self):
         return (self.price * self.quantity)
@@ -365,7 +366,8 @@ class Task(models.Model):
     creation_date = models.DateTimeField(auto_now_add=True)
     completion_date = models.DateTimeField(null=True, editable=False)
     estimated_hours = models.DecimalField(max_digits=5, decimal_places=2, default=0)
-
+    invoicerow = models.ForeignKey('InvoiceRow', blank=True, null=True)
+    
     objects = ForProjectUserManager()
     
     
@@ -374,7 +376,7 @@ class Task(models.Model):
         return ('projectmanager.views.tasks',)
     
     def __unicode__(self):
-        return "%s (%s)" % (self.task, self.project.name)
+        return "%s (%s, %sh)" % (self.task, self.project.name, self.estimated_hours)
     
     class Meta:
         ordering = ('creation_date',)
