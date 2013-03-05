@@ -85,10 +85,12 @@ class Project(models.Model):
     
     # don't cache the following two methods, as they are used to create invoices
     def unbilled_tasks(self):
-        return self.task_set.filter(invoicerow__isnull=True, completed=True)
+        return self.task_set.filter(invoicerow__isnull=True, completed=True).exclude(estimated_hours__isnull=True)
     
     def unbilled_projecttime(self):
-        return self.projecttime_set.filter(invoicerow__isnull=True, task__isnull=True)
+        return self.projecttime_set.filter(invoicerow__isnull=True) \
+                                   .filter(models.Q(task__isnull=True) | \
+                                           models.Q(task__estimated_hours__isnull=True, task__completed=True))
     
     @cached_method()
     def billable_task_time(self):
@@ -361,7 +363,7 @@ class Task(models.Model):
     completed = models.BooleanField()
     creation_date = models.DateTimeField(auto_now_add=True)
     completion_date = models.DateTimeField(null=True, editable=False)
-    estimated_hours = models.DecimalField(max_digits=5, decimal_places=2, default=0)
+    estimated_hours = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True)
     invoicerow = models.ForeignKey('InvoiceRow', blank=True, null=True)
     
     objects = ForProjectUserManager()
@@ -372,7 +374,7 @@ class Task(models.Model):
         return ('projectmanager.views.tasks',)
     
     def __unicode__(self):
-        return "%s: %s (%sh)" % (self.project.name, self.task, self.estimated_hours)
+        return "%s: %s%s" % (self.project.name, self.task, ' (%sh)' % self.estimated_hours if self.estimated_hours != None else '')
     
     class Meta:
         ordering = ('creation_date',)

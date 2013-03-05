@@ -54,7 +54,7 @@ class AddTaskForm(forms.ModelForm):
     project = forms.ModelChoiceField(queryset=Project.objects.filter(completed=False))
     class Meta:
         model = Task
-        exclude = ('completed', 'comments', )
+        exclude = ('completed', 'comments', 'invoicerow')
 
         
         
