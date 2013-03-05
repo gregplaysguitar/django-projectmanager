@@ -372,7 +372,7 @@ class Task(models.Model):
         return ('projectmanager.views.tasks',)
     
     def __unicode__(self):
-        return "%s (%s, %sh)" % (self.task, self.project.name, self.estimated_hours)
+        return "%s: %s (%sh)" % (self.project.name, self.task, self.estimated_hours)
     
     class Meta:
         ordering = ('creation_date',)

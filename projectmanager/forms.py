@@ -17,7 +17,7 @@ class ProjectTimeForm(forms.ModelForm):
         
         #self.fields['project'].choices = get_project_choices()
         self.fields['project'].queryset = Project.objects.filter(completed=False, hidden=False)
-        self.fields['task'].queryset = Task.objects.filter(completed=False, project__completed=False, project__hidden=False).order_by('task')
+        self.fields['task'].queryset = Task.objects.filter(completed=False, project__completed=False, project__hidden=False).order_by('project__name', 'task')
         self.fields['task'].required = False
         self.fields['description'].required = False
     
