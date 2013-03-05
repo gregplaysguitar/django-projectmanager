@@ -2,12 +2,12 @@ from django import forms
 from models import Project, ProjectTime, Task
 
 
-def get_project_choices():
-    return (('', '---------'), ('Recent', [(p.pk, p.name) for p in Project.objects.filter(completed=False, hidden=False)]), ('Other', [(p.pk, p.name) for p in Project.objects.filter(completed=False, hidden=True)]))
+# def get_project_choices():
+#     return (('', '---------'), ('Recent', [(p.pk, p.name) for p in Project.objects.filter(completed=False, hidden=False)]), ('Other', [(p.pk, p.name) for p in Project.objects.filter(completed=False, hidden=True)]))
 
 
 class ProjectTimeForm(forms.ModelForm):
-    project = forms.ModelChoiceField(queryset=Project.objects.all(), required=False)
+    project = forms.ModelChoiceField(queryset=Project.objects.filter(completed=False, hidden=False), required=False)
     
     def __init__(self, *args, **kwargs):
         super(ProjectTimeForm, self).__init__(*args, **kwargs)
@@ -15,8 +15,9 @@ class ProjectTimeForm(forms.ModelForm):
         # hack to allow field ordering - http://code.djangoproject.com/ticket/6369
         self.fields.keyOrder = self.Meta.fields
         
-        self.fields['project'].choices = get_project_choices()
-        self.fields['task'].queryset = Task.objects.filter(completed=False)
+        #self.fields['project'].choices = get_project_choices()
+        self.fields['project'].queryset = Project.objects.filter(completed=False, hidden=False)
+        self.fields['task'].queryset = Task.objects.filter(completed=False, project__completed=False, project__hidden=False).order_by('task')
         self.fields['task'].required = False
         self.fields['description'].required = False
     

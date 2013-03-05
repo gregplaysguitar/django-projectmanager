@@ -93,10 +93,12 @@ class Project(models.Model):
     @cached_method()
     def billable_task_time(self):
         return sum([t.estimated_hours for t in self.unbilled_tasks()])
+    billable_task_time.short_description = 'billable task'
     
     @cached_method()
     def billable_non_task_time(self):
        return sum_projecttime_hours(self.unbilled_projecttime())
+    billable_non_task_time.short_description = 'billable time'
     
     @cached_method()
     def total_billable(self):
@@ -346,7 +348,7 @@ class InvoiceRow(models.Model):
     # this should be a db field populated on creation?
     @property
     def is_time(self):
-        return (self.price == self.project.hourly_rate)
+        return (self.projecttime_set.count() or self.task_set.count())
 
     def invoice_date(self):
         return datetime.date(self.invoice.creation_date.year, self.invoice.creation_date.month, self.invoice.creation_date.day)
