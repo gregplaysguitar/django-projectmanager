@@ -15,10 +15,13 @@ class ProjectExpenseInline(admin.TabularInline):
 class TaskInline(admin.TabularInline):
     model = Task
     extra = 1
+    raw_id_fields = ('invoicerow',)
 
 #class ProjectTimeInline(admin.TabularInline):
 #   model = ProjectTime
 #   extra = 1
+#   raw_id_fields = ('invoicerow',)
+
 
 
 
@@ -90,7 +93,7 @@ class ProjectTimeAdmin(RestrictedByUsers):
     list_filter = ('project', 'start')
     search_fields = ('description',)
     date_hierarchy = 'start'
-    raw_id_fields = ('project', 'task')
+    raw_id_fields = ('project', 'task', 'invoicerow')
 
 admin.site.register(ProjectTime, ProjectTimeAdmin)
 
@@ -98,7 +101,8 @@ admin.site.register(ProjectTime, ProjectTimeAdmin)
 class InvoiceRowInline(admin.TabularInline):
     model = InvoiceRow
     extra = 2
-    raw_id_fields = ('project', 'tasks', 'time')
+    raw_id_fields = ('project', )
+    exclude = ('tasks', 'time')
 
 class InvoiceAdmin(RestrictedByUsers):
     user_field = 'project__owner'
@@ -141,7 +145,7 @@ class TaskAdmin(RestrictedByUsers):
     list_filter = ('completed', 'creation_date', 'project', )
     list_display = ('project', 'task', 'estimated_hours', 'completed', 'completion_date', 'creation_date')
     search_fields = ('project__name', 'task', 'comments')
-    raw_id_fields = ('project',)
+    raw_id_fields = ('project', 'invoicerow')
 admin.site.register(Task, TaskAdmin)
 
 

@@ -83,17 +83,16 @@ class Project(models.Model):
     def pending_task_count(self):
         return self.task_set.filter(completed=False).count()
     
-    @cached_method()
+    # don't cache the following two methods, as they are used to create invoices
     def unbilled_tasks(self):
         return self.task_set.filter(invoicerow__isnull=True, completed=True)
+    
+    def unbilled_projecttime(self):
+        return self.projecttime_set.filter(invoicerow__isnull=True, task__isnull=True)
     
     @cached_method()
     def billable_task_time(self):
         return sum([t.estimated_hours for t in self.unbilled_tasks()])
-    
-    @cached_method()
-    def unbilled_projecttime(self):
-        return self.projecttime_set.filter(invoicerow__isnull=True, task__isnull=True)
     
     @cached_method()
     def billable_non_task_time(self):
@@ -283,39 +282,34 @@ class Invoice(models.Model):
 def create_invoice_for_projects(project_qs):
     new_invoice = Invoice.objects.create(client=project_qs.all()[0].client)
     for project in project_qs.all():
-        if not project.billing_type:
-            # new style
             
-            if project.billable_task_time():
-                detail = ', '.join([t.task for t in project.unbilled_tasks()])
-                row = InvoiceRow.objects.create(
-                    invoice=new_invoice,
-                    project=project,
-                    detail='%s: %s' % (project.name, detail),
-                    quantity=project.billable_task_time(),
-                    price=project.hourly_rate,
-                )
-                [row.tasks.add(t) for t in project.unbilled_tasks()]
-            
-            if project.billable_non_task_time():
-                row = InvoiceRow.objects.create(
-                    invoice=new_invoice,
-                    project=project,
-                    detail='%s: time' % (project.name),
-                    quantity=decimal.Decimal(str(project.billable_non_task_time())),
-                    price=project.hourly_rate,
-                )
-                [row.time.add(t) for t in project.unbilled_projecttime()]
-            
-        else:
-            # legacy style
-            InvoiceRow.objects.create(
+        unbilled_tasks = project.unbilled_tasks()
+        if unbilled_tasks.count():
+            detail = ', '.join([t.task for t in unbilled_tasks])
+            row = InvoiceRow.objects.create(
                 invoice=new_invoice,
                 project=project,
-                detail=project.name,
-                quantity=project.approx_hours_to_invoice(),
+                detail='%s: %s' % (project.name, detail),
+                quantity=sum([t.estimated_hours for t in unbilled_tasks]),
                 price=project.hourly_rate,
             )
+            for t in unbilled_tasks:
+                t.invoicerow = row
+                t.save()
+            
+        unbilled_projecttime = project.unbilled_projecttime()
+        if unbilled_projecttime.count():
+            row = InvoiceRow.objects.create(
+                invoice=new_invoice,
+                project=project,
+                detail='%s: time' % (project.name),
+                quantity=sum_projecttime_hours(unbilled_projecttime),
+                price=project.hourly_rate,
+            )
+            for t in unbilled_projecttime:
+                t.invoicerow = row
+                t.save()
+    
         
     
     return new_invoice
