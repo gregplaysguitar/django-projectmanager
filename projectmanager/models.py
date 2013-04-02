@@ -49,7 +49,7 @@ def cached_method(duration=86400):
 
 def sum_projecttime_hours(projecttimes):
     delta = sum((item.total_time() for item in projecttimes), datetime.timedelta())
-    return (delta.days * 24 + delta.seconds / 3600) + (((0.0 + delta.seconds / 60) % 60) / 60)
+    return decimal.Decimal(str((delta.days * 24 + delta.seconds / 3600) + (((0.0 + delta.seconds / 60) % 60) / 60)))
 
 # Create your models here.
 class Project(models.Model):
