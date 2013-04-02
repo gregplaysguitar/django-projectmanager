@@ -192,7 +192,7 @@ class ProjectTime(models.Model):
     description = models.TextField()
     project = models.ForeignKey(Project)
     _time = models.DecimalField(max_digits=4, decimal_places=2, null=True, editable=False)
-    task = models.ForeignKey('Task', blank=True, null=True)
+    task = models.ForeignKey('Task', blank=True, null=True, on_delete=models.SET_NULL)
     invoicerow = models.ForeignKey('InvoiceRow', blank=True, null=True, on_delete=models.SET_NULL)
 
     objects = ForProjectUserManager()
