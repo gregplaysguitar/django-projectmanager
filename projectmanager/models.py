@@ -361,7 +361,7 @@ class Task(models.Model):
     creation_date = models.DateTimeField(auto_now_add=True)
     completion_date = models.DateTimeField(null=True, editable=False)
     estimated_hours = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True)
-    invoicerow = models.ForeignKey('InvoiceRow', blank=True, null=True)
+    invoicerow = models.ForeignKey('InvoiceRow', blank=True, null=True, on_delete=models.SET_NULL)
     
     objects = ForProjectUserManager()
     
