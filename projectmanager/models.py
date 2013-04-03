@@ -377,6 +377,7 @@ class Task(models.Model):
         completed = '&#10003; ' if self.completed else ''
         hours = ' (%sh)' % self.estimated_hours if self.estimated_hours != None else ''
         return mark_safe("%s%s: %s%s" % (completed, self.project.name, self.task, hours))
+    __unicode__.allow_tags = True
     
     class Meta:
         ordering = ('creation_date',)
