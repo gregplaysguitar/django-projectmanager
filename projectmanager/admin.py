@@ -89,7 +89,7 @@ class ProjectTimeAdmin(RestrictedByUsers):
     user_field = 'project__owner'
     is_many_field = False
     
-    list_display = ('project', 'description', 'start', 'end', 'total_time')
+    list_display = ('project', 'task', 'description', 'start', 'end', 'total_time')
     list_filter = ('project', 'start')
     search_fields = ('description',)
     date_hierarchy = 'start'
