@@ -1,4 +1,10 @@
+# -*- coding: utf-8 -*-
+
+from datetime import date, timedelta
+
 from django import forms
+from django.db.models import Q
+
 from models import Project, ProjectTime, Task
 
 
@@ -17,7 +23,13 @@ class ProjectTimeForm(forms.ModelForm):
         
         #self.fields['project'].choices = get_project_choices()
         self.fields['project'].queryset = Project.objects.filter(completed=False, hidden=False)
-        self.fields['task'].queryset = Task.objects.filter(completed=False, project__completed=False, project__hidden=False).order_by('project__name', 'task')
+        
+        # incomplete tasks, or tasks completed in the last 2 weeks.
+        self.fields['task'].queryset = Task.objects \
+            .filter(project__completed=False, project__hidden=False) \
+            .filter(Q(completed=False) | Q(completion_date__gte=date.today() - timedelta(14))) \
+            .order_by('completed', 'project__name', 'task')
+        
         self.fields['task'].required = False
         self.fields['description'].required = False
     

@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+
 import datetime, decimal
 import hashlib
 
@@ -9,6 +11,7 @@ from django.http import HttpResponseRedirect
 from django.db.models.signals import pre_save, post_save, post_init
 from django.contrib.auth.models import User
 from django.db.models import Q, Sum
+from django.utils.safestring import mark_safe
 
 from string_utils import smart_truncate
 
@@ -371,7 +374,9 @@ class Task(models.Model):
         return ('projectmanager.views.tasks',)
     
     def __unicode__(self):
-        return "%s: %s%s" % (self.project.name, self.task, ' (%sh)' % self.estimated_hours if self.estimated_hours != None else '')
+        completed = '&#10003; ' if self.completed else ''
+        hours = ' (%sh)' % self.estimated_hours if self.estimated_hours != None else ''
+        return mark_safe("%s%s: %s%s" % (completed, self.project.name, self.task, hours))
     
     class Meta:
         ordering = ('creation_date',)
