@@ -89,12 +89,18 @@ class ProjectTimeAdmin(RestrictedByUsers):
     user_field = 'project__owner'
     is_many_field = False
     
-    list_display = ('project', 'task', 'description', 'start', 'end', 'total_time')
+    list_display = ('project', 'show_task', 'description', 'start', 'end', 'total_time')
     list_filter = ('project', 'start')
     search_fields = ('description',)
     date_hierarchy = 'start'
     raw_id_fields = ('project', 'task', 'invoicerow')
-
+    
+    def show_task(self, obj):
+        return str(obj.task)
+    show_task.admin_order_field = 'task'
+    show_task.short_description = 'task'
+    show_task.allow_tags = True
+    
 admin.site.register(ProjectTime, ProjectTimeAdmin)
 
 
