@@ -84,7 +84,7 @@
       $('form.addtime #id_id').val('0');
       $('#add_time #id_start').val(formatDate(start));
       $('#add_time #id_end').val(formatDate(end));
-      $('#add_time #id_description').val("");
+      $('#add_time').find('#id_project, #id_task, #id_description').val("");
       $('#add_time #id_project').focus();
       $("#add_time, #add_time_overlay").fadeIn(300);
       $('#add_time .delete').hide();
