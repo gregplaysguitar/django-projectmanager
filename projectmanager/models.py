@@ -128,7 +128,7 @@ class Project(models.Model):
     
     @cached_method() 
     def time_invoiced(self):
-        return float(sum(item.quantity for item in InvoiceRow.objects.filter(project=self) if item.is_time))
+        return float(sum(item.quantity for item in InvoiceRow.objects.filter(project=self)))
     
     @cached_method()
     def total_invoiced(self):
