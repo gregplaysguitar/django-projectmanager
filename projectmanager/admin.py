@@ -119,7 +119,6 @@ class InvoiceAdmin(RestrictedByUsers):
     inlines = [InvoiceRowInline,]
     actions = ['make_paid',]
     search_fields = ['client', 'email', 'description', 'address']
-    raw_id_fields = ['time', 'tasks']
     
     def queryset(self, request):
         qs = super(InvoiceAdmin, self).queryset(request)
@@ -195,6 +194,7 @@ admin.site.register(InvoiceRow,
     search_fields = ('invoice__client', 'detail'),
     list_display = ('project', 'invoice', 'amount', 'detail', 'invoice_date'),
     list_filter = ('project', 'invoice', ),
+    raw_id_fields = ['time', 'tasks']
 )
 
 
