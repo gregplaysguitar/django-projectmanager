@@ -119,6 +119,7 @@ class InvoiceAdmin(RestrictedByUsers):
     inlines = [InvoiceRowInline,]
     actions = ['make_paid',]
     search_fields = ['client', 'email', 'description', 'address']
+    raw_id_fields = ['time', 'tasks']
     
     def queryset(self, request):
         qs = super(InvoiceAdmin, self).queryset(request)
