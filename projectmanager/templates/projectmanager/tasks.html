@@ -112,10 +112,10 @@ Tasks for {% firstof project "all projects" %}
 
 	<h3>Filter by project</h3>
 	<ul class="project list">
-		<li><a href="{% url projectmanager.views.tasks 'all' %}">All</a></li>
+		<li><a href="{% url 'projectmanager.views.tasks' 'all' %}">All</a></li>
 		{% for project in project_list %}
 		<li class="{% if project.pending_task_count %}has-pending{% endif %} {% if project.hidden %} hidden{% endif %}">
-			<a href="{% url projectmanager.views.tasks project.pk %}">
+			<a href="{% url 'projectmanager.views.tasks' project.pk %}">
 				{{ project }}
 				{% if project.pending_task_count %}
 				({{ project.pending_task_count }})
