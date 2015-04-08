@@ -1,4 +1,4 @@
-from django.conf.urls.defaults import *
+from django.conf.urls import *
 
 urlpatterns = patterns('projectmanager.views',
     (r'^calendar/$', 'project_time_calendar'),

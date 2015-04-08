@@ -1,4 +1,5 @@
 {% extends "admin/base_site.html" %}
+{% load static %}
 
 {% block title %}
     {{ current_day|date:"l, j F Y" }}
@@ -29,11 +30,11 @@
 </fieldset>
 </form>
 
-<link rel="stylesheet" type="text/css" href="/media/projectmanager/css/fullcalendar.css" />
-<link rel="stylesheet" type="text/css" href="/media/projectmanager/css/fullcalendar.print.css" media="print" />
-<script type="text/javascript" src="/media/projectmanager/js/lib/jquery-1.5.2.min.js"></script>
-<script type="text/javascript" src="/media/projectmanager/js/lib/jquery-ui-1.8.11.custom.min.js"></script>
-<script type="text/javascript" src="/media/projectmanager/js/lib/fullcalendar.js"></script>
+<link rel="stylesheet" type="text/css" href="{% static 'projectmanager/css/fullcalendar.css' %}">
+<link rel="stylesheet" type="text/css" href="{% static 'projectmanager/css/fullcalendar.print.css' %}" media="print" />
+<script type="text/javascript" src="{% static 'projectmanager/js/lib/jquery-1.5.2.min.js' %}"></script>
+<script type="text/javascript" src="{% static 'projectmanager/js/lib/jquery-ui-1.8.11.custom.min.js' %}"></script>
+<script type="text/javascript" src="{% static 'projectmanager/js/lib/fullcalendar.js' %}"></script>
 <script type="text/javascript">
   $(document).ready(function() {
 

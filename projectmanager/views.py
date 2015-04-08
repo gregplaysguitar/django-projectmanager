@@ -1,5 +1,4 @@
 from django.db.models.query_utils import Q
-from django.utils import simplejson
 from django.views.decorators.http import require_POST
 from jsonresponse import JsonResponse
 from django.shortcuts import render_to_response, get_object_or_404
@@ -60,11 +59,11 @@ def api_project_time_list(request):
         (Q(start__lt=date_start) & Q(end__gt=date_end))   # spanned multiple days
     ).order_by('start')
 
-    json = []
+    json_data = []
     for projecttime in time_qs:
-        json.append(_projecttime_to_json(projecttime))
+        json_data.append(_projecttime_to_json(projecttime))
 
-    return JsonResponse(json)
+    return JsonResponse(json_data)
 
 
 @login_required

@@ -1,22 +1,23 @@
 
 
-#header #nav {
+#header #projman-nav {
     padding-left: 5px;
+    clear: both;
 }
-#header #nav a {
+#header #projman-nav a {
     display: block;
     padding: 0.5em;
     float: left;
 }
-#header #nav a.current,
-#header #nav a.current:hover {
+#header #projman-nav a.current,
+#header #projman-nav a.current:hover {
     background: none;
 }
-#header #nav a.highlight {
+#header #projman-nav a.highlight {
     color: red;
     background: #ffa;
 }
-#header #nav a.highlight:hover {
+#header #projman-nav a.highlight:hover {
     background: #ffa;
 }
 

@@ -12,7 +12,7 @@ class RestrictedByUsers(admin.ModelAdmin):
     save_callback = None
 
     def queryset(self, request):
-        qs = self.model._default_manager.get_query_set()
+        qs = self.model._default_manager.get_queryset()
         if not request.user.is_superuser:
             qs = qs.filter(**{self.user_field: request.user})
         return qs

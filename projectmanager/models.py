@@ -17,14 +17,14 @@ import calendar
 
 class ForUserManager(models.Manager):
     def for_user(self, user):
-        return self.get_query_set().filter(Q(users=user) | Q(owner=user))
+        return self.get_queryset().filter(Q(users=user) | Q(owner=user))
  
  
 def cache_key(obj, func_name, *args, **kwargs):
     key = [settings.CACHE_MIDDLEWARE_KEY_PREFIX,
            func_name,
            obj._meta.app_label,
-           obj._meta.module_name,
+           obj._meta.model_name,
            str(obj.pk)]
     for extra in (args, kwargs):
         if len(extra):
@@ -156,7 +156,7 @@ post_save.connect(clear_project_cache)
 
 class ForProjectUserManager(models.Manager):
     def for_user(self, user):
-        return self.get_query_set().filter(Q(project__users=user) | Q(project__owner=user))
+        return self.get_queryset().filter(Q(project__users=user) | Q(project__owner=user))
 
 
 class ProjectTime(models.Model):
