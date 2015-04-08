@@ -21,7 +21,6 @@ class TaskInline(admin.TabularInline):
 #   extra = 1
 
 
-
 class ProjectAdmin(RestrictedByUsers):
     user_field = 'owner'
     is_many_field = False
@@ -40,7 +39,8 @@ class ProjectAdmin(RestrictedByUsers):
     def make_hidden(self, request, queryset):
         queryset.update(hidden=True)
     
-    list_display = ('name', 'client', 'total_estimated_hours', 'total_time', 'latest_time', 'billing_type', 'total_invoiced', 'time_invoiced', 'unbilled_time', 'total_to_invoice', 'approx_hours_to_invoice', 'completed', 'links', )
+    # list_display = ('name', 'client', 'total_estimated_hours', 'total_time', 'latest_time', 'billing_type', 'total_invoiced', 'time_invoiced', 'unbilled_time', 'total_to_invoice', 'approx_hours_to_invoice', 'completed', 'links', )
+    list_display = ('client', 'name')
     list_display_links = ('client', 'name')
     list_filter = ('completed', 'creation_date', 'billable', 'hidden', 'client')
     search_fields = ('name', 'client', 'slug', 'description')
@@ -87,10 +87,10 @@ class ProjectTimeAdmin(RestrictedByUsers):
     is_many_field = False
     
     list_display = ('project', 'description', 'start', 'end', 'total_time')
-    list_filter = ('project', 'start')
+    list_filter = ('start', )
     search_fields = ('description',)
     date_hierarchy = 'start'
-    raw_id_fields = ('project',)
+    raw_id_fields = ('task', )
 
 admin.site.register(ProjectTime, ProjectTimeAdmin)
 
@@ -134,7 +134,6 @@ class InvoiceAdmin(RestrictedByUsers):
 admin.site.register(Invoice, InvoiceAdmin)
 
 
-
 class TaskAdmin(RestrictedByUsers):
     user_field = 'project__owner'
     is_many_field = False
@@ -145,20 +144,17 @@ class TaskAdmin(RestrictedByUsers):
 admin.site.register(Task, TaskAdmin)
 
 
-
-
-
 class HostingInvoiceRowInline(admin.TabularInline):
     model = HostingInvoiceRow
     extra = 0
     raw_id_fields = ('invoicerow',)
-   
+
 
 class HostingExpenseInline(admin.TabularInline):
     model = HostingExpense
     extra = 1
-    
-    
+
+
 class HostingClientAdmin(RestrictedByUsers):
     user_field = 'project__owner'
     is_many_field = False
@@ -177,8 +173,7 @@ class HostingClientAdmin(RestrictedByUsers):
         invoices = create_invoice_for_hosting_clients(queryset)
         if invoices:
             return HttpResponseRedirect(urlresolvers.reverse('admin:projectmanager_invoice_change', args=(invoices[0].pk,)) + '?paid__exact=0')
-        
-    
+
 
 admin.site.register(HostingClient, HostingClientAdmin)
 
@@ -188,9 +183,6 @@ admin.site.register(InvoiceRow,
     list_display = ('project', 'invoice', 'amount', 'detail', 'invoice_date'),
     list_filter = ('project', 'invoice', ),
 )
-
-
-
 
 
 class QuoteRowInline(admin.TabularInline):
@@ -210,6 +202,5 @@ class QuoteAdmin(RestrictedByUsers):
     def quote(self, instance):
         return u'<a href="/quote/%d/%s">pdf</a>' % (instance.id, instance.pdf_filename()) + u' | <a href="/quote/%d/">html</a>' % (instance.id)
     quote.allow_tags = True
-    
-       
+
 admin.site.register(Quote, QuoteAdmin)
