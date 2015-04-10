@@ -3,7 +3,11 @@ from models import Project, ProjectTime, Task
 
 
 def get_project_choices():
-    return (('Recent', [(p.pk, p.name) for p in Project.objects.filter(completed=False, hidden=False)]), ('Other', [(p.pk, p.name) for p in Project.objects.filter(completed=False, hidden=True)]))
+    recent = Project.objects.filter(completed=False, hidden=False)
+    other = Project.objects.filter(completed=False, hidden=True)
+    return (('Recent', [(p.pk, p.name) for p in recent]), 
+            ('Other', [(p.pk, p.name) for p in other]))
+
 
 class ProjectTimeForm(forms.ModelForm):
     project = forms.ChoiceField(choices=get_project_choices())
@@ -12,11 +16,6 @@ class ProjectTimeForm(forms.ModelForm):
     
     def __init__(self, *args, **kwargs):
         super(ProjectTimeForm, self).__init__(*args, **kwargs)
-        #self['project'].initial = ProjectTime.objects.all().order_by('-start')[0].project
-        
-        # hack to allow field ordering - http://code.djangoproject.com/ticket/6369
-        self.fields.keyOrder = self.Meta.fields
-        
         self['project'].field.choices = get_project_choices()
 
     class Meta:
@@ -31,6 +30,3 @@ class AddTaskForm(forms.ModelForm):
     class Meta:
         model = Task
         exclude = ('completed', 'comments', )
-
-        
-        

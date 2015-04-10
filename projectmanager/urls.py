@@ -1,25 +1,26 @@
 from django.conf.urls import *
 
-urlpatterns = patterns('projectmanager.views',
-    (r'^calendar/$', 'project_time_calendar'),
-    (r'^api/time/list/', 'api_project_time_list'),
-    (r'^api/time/add/', 'api_project_time_add'),
-    (r'^api/time/edit/', 'api_project_time_edit'),
-    (r'^api/time/move/', 'api_project_time_move'),
+from . import views
 
-    (r'^tasks/$', 'tasks'),
-    (r'^tasks/(\d+)/$', 'tasks'),
-    (r'^tasks/(all)/$', 'tasks'),
+urlpatterns = [
+    url(r'^calendar/$', views.project_time_calendar),
+    url(r'^api/time/list/', views.api_project_time_list),
+    url(r'^api/time/add/', views.api_project_time_add),
+    url(r'^api/time/edit/', views.api_project_time_edit),
+    url(r'^api/time/move/', views.api_project_time_move),
 
-    (r'^invoice/(\d+)/$', 'invoice'),
-    (r'^invoice/(\d+)/.+\.(pdf)$', 'invoice'),
+    url(r'^tasks/$', views.tasks),
+    url(r'^tasks/(\d+)/$', views.tasks),
+    url(r'^tasks/(all)/$', views.tasks),
 
-    (r'^quote/(\d+)/$', 'quote'),
-    (r'^quote/(\d+)/.+\.(pdf)$', 'quote'),
+    url(r'^invoice/(\d+)/$', views.invoice),
+    url(r'^invoice/(\d+)/.+\.(pdf)$', views.invoice),
 
-    (r'^itemise/(\d+)/$', 'projecttime_summary'),
+    url(r'^quote/(\d+)/$', views.quote),
+    url(r'^quote/(\d+)/.+\.(pdf)$', views.quote),
 
-    (r'^create_invoice_for_project/(\d+)/$', 'create_invoice_for_project'),
+    url(r'^itemise/(\d+)/$', views.projecttime_summary),
 
-)
+    url(r'^create_invoice_for_project/(\d+)/$', views.create_invoice_for_project),
 
+]
