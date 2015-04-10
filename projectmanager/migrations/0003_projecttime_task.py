@@ -9,7 +9,8 @@ def create_project_tasks(apps, schema_editor):
     ProjectTime = apps.get_model("projectmanager", "ProjectTime")
     Task = apps.get_model("projectmanager", "Task")
     for project in Project.objects.all():
-        site_task = Task.objects.create(project=project, task='Site task')
+        site_task = Task.objects.create(project=project, task=u'General',
+                                        completed=True)
         project.projecttime_set.update(task=site_task)
 
 
@@ -32,4 +33,3 @@ class Migration(migrations.Migration):
             field=models.ForeignKey(to='projectmanager.Task'),
         ),
     ]
-
