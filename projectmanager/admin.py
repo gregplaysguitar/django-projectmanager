@@ -67,10 +67,11 @@ class ProjectAdmin(RestrictedByUsers):
             return None
     latest_time.admin_order_field = 'latest_time'
         
-    def links(self, instance):
-        return (u'<a href="%s?project__id__exact=%s">view</a> ' % (urlresolvers.reverse('admin:projectmanager_projecttime_changelist'), instance.pk)) + \
-               (u'<a href="%s">csv</a> ' % instance.projecttime_summary_url())
-
+    def links(self, obj):
+        time_url = reverse('admin:projectmanager_projecttime_changelist')
+        return (u'<a href="%s?task__project__id__exact=%s">view</a> ' % 
+                (time_url, obj.pk)) + \
+               (u'<a href="%s">csv</a> ' % obj.projecttime_summary_url())
 
     def create_invoice_for_selected(self, request, queryset):
         invoice = create_invoice_for_projects(queryset)
@@ -88,7 +89,7 @@ class ProjectTimeAdmin(RestrictedByUsers):
     is_many_field = False
     
     list_display = ('project', 'description', 'start', 'end', 'total_time')
-    list_filter = ('start', )
+    list_filter = ('start', 'task__project', )
     search_fields = ('description',)
     date_hierarchy = 'start'
     raw_id_fields = ('task', )
