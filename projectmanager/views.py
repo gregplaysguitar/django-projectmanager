@@ -8,7 +8,6 @@ from django.contrib.auth.decorators import login_required
 from django.core.urlresolvers import reverse
 from django.forms.models import modelformset_factory, model_to_dict
 
-
 # pdf stuff
 from django import http
 from django.template.loader import get_template
@@ -31,8 +30,6 @@ def index(request):
         'completed_project_list': Project.objects.for_user(request.user).filter(completed=True).order_by('-start')
     }
     return render_to_response('projectmanager/index.html', data)
-
-
 
 
 @login_required
@@ -146,7 +143,6 @@ def tasks(request, project_pk=None):
 
     TaskListFormSet = modelformset_factory(Task, fields=('completed',), extra=0)
 
-
     if request.POST and 'task_list-INITIAL_FORMS' in request.POST:
         task_list_formset = TaskListFormSet(request.POST, queryset=pending_task_list, prefix='task_list')
         if task_list_formset.is_valid():
@@ -163,7 +159,6 @@ def tasks(request, project_pk=None):
     else:
         task_form = AddTaskForm(prefix='addtask', initial=initial)
 
-
     data = {
         'project': project,
         'completed_task_list': completed_task_list,
@@ -174,16 +169,11 @@ def tasks(request, project_pk=None):
     return render_to_response('projectmanager/tasks.html', data)
 
 
-
-
-
 @login_required
 def create_invoice_for_project(request, project_id):
     project = get_object_or_404(Project, pk=project_id)
     invoice = project.create_invoice()
     return HttpResponseRedirect(reverse('projectmanager.views.invoice', invoice.id))
-
-
 
 
 def render_to_pdf(template_src, context_dict):
@@ -219,7 +209,6 @@ def quote(request, quote_id, type='html'):
         return render_to_pdf('projectmanager/pdf/quote.html', data)
     else:
         return render_to_response('projectmanager/pdf/quote.html', data, context_instance=RequestContext(request))
-
 
 
 @login_required

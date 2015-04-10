@@ -1,7 +1,7 @@
 from django.contrib import admin
 from django.db import models
 from django.utils.safestring import mark_safe
-from django.core import urlresolvers
+from django.core.urlresolvers import reverse
 
 from admin_restricted import RestrictedByUsers
 
@@ -48,12 +48,13 @@ class ProjectAdmin(RestrictedByUsers):
     prepopulated_fields = {
         'slug': ('client', 'name',)
     }
-    inlines = [ProjectExpenseInline,TaskInline,]
+    inlines = [ProjectExpenseInline, TaskInline]
     actions = ['create_invoice_for_selected', 'make_completed', 'make_hidden']
     exclude = ('owner', )
     
-    def unbilled_time(self, obj):
-        return max(0, obj.total_time() - obj.time_invoiced())
+    # def unbilled_time(self, obj):
+    #     return max(0, obj.total_time() - obj.time_invoiced())
+    
     def get_client(self, obj):
         return obj.client.name if obj.client else ''
     get_client.admin_order_field = 'client__name'
@@ -66,9 +67,6 @@ class ProjectAdmin(RestrictedByUsers):
             return None
     latest_time.admin_order_field = 'latest_time'
         
-    def create_invoice(self, instance):
-        return u'<a href="/create_invoice_for_project/%d/">create</a>' % (instance.id)
-
     def links(self, instance):
         return (u'<a href="%s?project__id__exact=%s">view</a> ' % (urlresolvers.reverse('admin:projectmanager_projecttime_changelist'), instance.pk)) + \
                (u'<a href="%s">csv</a> ' % instance.projecttime_summary_url())
@@ -76,10 +74,8 @@ class ProjectAdmin(RestrictedByUsers):
 
     def create_invoice_for_selected(self, request, queryset):
         invoice = create_invoice_for_projects(queryset)
-        return HttpResponseRedirect(urlresolvers.reverse('admin:projectmanager_invoice_change', args=(invoice.id,)))
+        return HttpResponseRedirect(reverse('admin:projectmanager_invoice_change', args=(invoice.id,)))
         
-    create_invoice.short_description = 'Invoice'                
-    create_invoice.allow_tags = True
     links.short_description = ' '                
     links.allow_tags = True
 
@@ -177,7 +173,7 @@ class HostingClientAdmin(RestrictedByUsers):
     def create_invoice_for_selected(self, request, queryset):
         invoices = create_invoice_for_hosting_clients(queryset)
         if invoices:
-            return HttpResponseRedirect(urlresolvers.reverse('admin:projectmanager_invoice_change', args=(invoices[0].pk,)) + '?paid__exact=0')
+            return HttpResponseRedirect(reverse('admin:projectmanager_invoice_change', args=(invoices[0].pk,)) + '?paid__exact=0')
 
 
 admin.site.register(HostingClient, HostingClientAdmin)
