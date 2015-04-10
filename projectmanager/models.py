@@ -15,11 +15,6 @@ import calendar
 from . import settings as pm_settings
 
 
-class ForUserManager(models.Manager):
-    def for_user(self, user):
-        return self.get_queryset().filter(Q(users=user) | Q(owner=user))
- 
- 
 def cache_key(obj, func_name, *args, **kwargs):
     key = [settings.CACHE_MIDDLEWARE_KEY_PREFIX,
            func_name,
@@ -47,11 +42,23 @@ def cached_method(duration=86400):
     return decorator
 
 
+def default_manager_from_qs(qs_cls, **kwargs):
+    related = kwargs.pop('use_for_related_fields', True)
+    class _Manager(models.Manager.from_queryset(qs_cls)):
+        use_for_related_fields = related
+    return _Manager
+
+
 class Client(models.Model):
     name = models.CharField(max_length=200)
     
     def __unicode__(self):
         return self.name
+
+
+class ProjectQuerySet(models.QuerySet):
+    def for_user(self, user):
+        return self.filter(Q(users=user) | Q(owner=user))
 
 
 class Project(models.Model):
@@ -72,7 +79,7 @@ class Project(models.Model):
                                                            ('time', 'Time'),), 
                                     default='quote')
     
-    objects = ForUserManager()
+    objects = default_manager_from_qs(ProjectQuerySet)()
     
     def __unicode__(self):
         if self.client:
@@ -170,9 +177,11 @@ def clear_project_cache(sender, instance, **kwargs):
 post_save.connect(clear_project_cache)
 
 
-class ForProjectUserManager(models.Manager):
+class ForProjectUserQuerySet(models.QuerySet):
     def for_user(self, user):
-        return self.get_queryset().filter(Q(project__users=user) | Q(project__owner=user))
+        return self.filter(Q(project__users=user) | Q(project__owner=user))
+
+ForProjectUserManager = default_manager_from_qs(ForProjectUserQuerySet)
 
 
 class Task(models.Model):
@@ -203,6 +212,12 @@ class Task(models.Model):
         ordering = ('creation_date',)
 
 
+class ProjectTimeQuerySet(models.QuerySet):
+    def for_user(self, user):
+        return self.filter(Q(task__project__users=user) | \
+                           Q(task__project__owner=user))
+
+
 class ProjectTime(models.Model):
     creation_date = models.DateTimeField(auto_now_add=True)
     start = models.DateTimeField(db_index=True)
@@ -212,7 +227,7 @@ class ProjectTime(models.Model):
     task = models.ForeignKey(Task)
     _time = models.DecimalField(max_digits=4, decimal_places=2, null=True, editable=False)
     
-    objects = ForProjectUserManager()
+    objects = default_manager_from_qs(ProjectTimeQuerySet)()
     
     @property
     def project(self):
