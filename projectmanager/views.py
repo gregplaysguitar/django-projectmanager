@@ -221,6 +221,7 @@ def projecttime_summary(request, project_pk):
     writer.writerow([
         'Date',
         'Time',
+        'Task',
         'Description',
     ])
 
@@ -228,6 +229,7 @@ def projecttime_summary(request, project_pk):
         writer.writerow([
             projecttime.start.date(),
             "%sh" % projecttime.total_time(),
+            projecttime.task.task,
             unicode(projecttime.description),
         ])
 
