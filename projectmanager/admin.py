@@ -40,8 +40,9 @@ class ProjectAdmin(RestrictedByUsers):
         queryset.update(hidden=True)
     
     # list_display = ('name', 'client', 'total_estimated_hours', 'total_time', 'latest_time', 'billing_type', 'total_invoiced', 'time_invoiced', 'unbilled_time', 'total_to_invoice', 'approx_hours_to_invoice', 'completed', 'links', )
-    list_display = ('client', 'name')
-    list_display_links = ('client', 'name')
+    list_display = ('get_client', 'name', 'total_time', 'latest_time', 'completed',
+                    'links', )
+    list_display_links = ('get_client', 'name')
     list_filter = ('completed', 'creation_date', 'billable', 'hidden', 'client')
     search_fields = ('name', 'client', 'slug', 'description')
     prepopulated_fields = {
@@ -53,6 +54,10 @@ class ProjectAdmin(RestrictedByUsers):
     
     def unbilled_time(self, obj):
         return max(0, obj.total_time() - obj.time_invoiced())
+    def get_client(self, obj):
+        return obj.client.name if obj.client else ''
+    get_client.admin_order_field = 'client__name'
+    get_client.short_description = 'client'
     
     def latest_time(self, obj):
         try:

@@ -47,11 +47,18 @@ def cached_method(duration=86400):
     return decorator
 
 
+class Client(models.Model):
+    name = models.CharField(max_length=200)
+    
+    def __unicode__(self):
+        return self.name
+
+
 class Project(models.Model):
     owner = models.ForeignKey(User, related_name='project_ownership_set')
     users = models.ManyToManyField(User, related_name='project_membership_set', 
                                    blank=True)
-    client = models.CharField(max_length=200, blank=True)
+    client = models.ForeignKey(Client, blank=True, null=True)
     name = models.CharField(max_length=200)
     slug = models.CharField(max_length=60, unique=True)
     description = models.TextField(blank=True)
