@@ -1,5 +1,59 @@
+(function($) {
+
+var task_data;
+function load_task_data(callback) {
+	if (!task_data) {
+		$.get(TASK_DATA_URL, function(data) {
+			task_data = data;
+			callback && callback(task_data);
+		});
+	}
+	else {
+		callback(task_data);
+	}
+};
+// load_task_data();
+
+
+function time_form_init(form) {
+	var project = form.find('#id_project'),
+	    task = form.find('#id_task'),
+			new_task = form.find('#id_new_task');
+	
+	project.change(function() {
+		var project_id = $(this).val();
+		load_task_data(function(data) {
+			task.html('');
+			if (data[project_id]) {
+				for (var i = 0; i < data[project_id].length; i++) {
+					task.append($('<option>').attr('value', data[project_id][i][0])
+					                         .text(data[project_id][i][1]));
+				}
+			}
+			task.append('<option value="">[new task]</option>');
+			task.change();
+		});
+	});
+	
+	task.change(function() {
+		var task_id = $(this).val();
+		if (task_id) {
+			new_task.parents('tr').hide();
+		}
+		else {
+			new_task.parents('tr').show();
+			new_task.focus();
+		}
+	});
+	
+	project.change();
+	task.change();
+};
+
 $(document).ready(function() {
 
+  time_form_init($('#add_time'));
+	
   var date = new Date();
 	var d = date.getDate();
 	var m = date.getMonth();
@@ -50,7 +104,6 @@ $(document).ready(function() {
 		$('#add_time #id_project').focus();
 		$("#add_time, #add_time_overlay").fadeIn(300);
 		$('#add_time .delete').hide();
-		alert('hello');
 	};
 
 	function onCalendarEventUpdate(event, delta)
@@ -68,7 +121,6 @@ $(document).ready(function() {
 		$('#add_time #id_description').val(event._description).focus();
 		$("#add_time, #add_time_overlay").fadeIn(300);
 		$('#add_time .delete').show().attr('href', $('#add_time .delete').attr('href').replace('/0/', '/' + event._id + '/'));
-		alert('hello 2');
 	};
 
 	function onTimeFormSubmit(event)
@@ -177,3 +229,5 @@ $(document).ready(function() {
 	};
 
 });
+
+})(jQuery);

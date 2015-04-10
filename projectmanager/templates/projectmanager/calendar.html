@@ -32,6 +32,9 @@
 
 <link rel="stylesheet" type="text/css" href="{% static 'projectmanager/css/fullcalendar.css' %}">
 <link rel="stylesheet" type="text/css" href="{% static 'projectmanager/css/fullcalendar.print.css' %}" media="print" />
+<script type="text/javascript">
+  TASK_DATA_URL = '{% url 'projectmanager.views.project_task_data' %}';
+</script>
 <script type="text/javascript" src="{% static 'projectmanager/js/lib/jquery-1.5.2.min.js' %}"></script>
 <script type="text/javascript" src="{% static 'projectmanager/js/lib/jquery-ui-1.8.11.custom.min.js' %}"></script>
 <script type="text/javascript" src="{% static 'projectmanager/js/lib/fullcalendar.js' %}"></script>
@@ -60,6 +63,10 @@
     display: none;
   }
   
+  #add_time textarea {
+    height: 50px;
+  }
+
   #add_time .delete {
       display: block;
       margin: 10px 85px;

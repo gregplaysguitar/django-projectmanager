@@ -46,6 +46,18 @@ def project_time_calendar(request):
 
 
 @login_required
+def project_task_data(request):
+    qs = Task.objects.filter(completed=False).order_by('project_id') \
+             .values_list('project_id', 'id', 'task')
+    data = {}
+    for task in qs:
+        if not data.get(task[0]):
+            data[task[0]] = []
+        data[task[0]].append(task[1:])
+    return JsonResponse(data)
+
+
+@login_required
 def api_project_time_list(request):
     date_start = datetime.fromtimestamp(int(request.GET['start']))
     date_end = datetime.fromtimestamp(int(request.GET['end']))
@@ -114,7 +126,7 @@ def _projecttime_to_json(projecttime):
         '_project_id': projecttime.task.project_id,
         'start': projecttime.start.strftime("%Y-%m-%d %H:%M"),
         'end': projecttime.end.strftime("%Y-%m-%d %H:%M"),
-        'title': "{0}: {1}".format(projecttime.project, projecttime.description),
+        'title': "{0}: {1}".format(projecttime.project, projecttime.task.task),
         'allDay': False,
         #'url': '',
     }

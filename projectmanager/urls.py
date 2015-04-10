@@ -4,6 +4,7 @@ from . import views
 
 urlpatterns = [
     url(r'^calendar/$', views.project_time_calendar),
+    url(r'^api/tasks.json$', views.project_task_data),
     url(r'^api/time/list/', views.api_project_time_list),
     url(r'^api/time/add/', views.api_project_time_add),
     url(r'^api/time/edit/', views.api_project_time_edit),
