@@ -91,12 +91,14 @@ class Project(models.Model):
     
     # def pending_task_count(self):
     #     return self.task_set.filter(completed=False).count()
-    # 
-    # @cached_method()
-    # def total_time(self):
-    #     delta = sum((item.total_time() for item in ProjectTime.objects.filter(project=self.id)), datetime.timedelta())
-    #     return (delta.days * 24 + delta.seconds / 3600) + (((0.0 + delta.seconds / 60) % 60) / 60)
-    # 
+    
+    @cached_method()
+    def total_time(self):
+        delta = sum((item.total_time() for item in self.get_projecttime()),
+                    datetime.timedelta())
+        return (delta.days * 24 + delta.seconds / 3600) + \
+               (((0.0 + delta.seconds / 60) % 60) / 60)
+    
     # @cached_method()
     # def total_estimated_hours(self, completed=False):
     #     tasks = self.task_set.all()
