@@ -85,7 +85,10 @@ class Project(models.Model):
                      'time_invoiced', 'total_invoiced', 'total_cost', 
                      'total_to_invoice', 'approx_hours_to_invoice'):
             cache.delete(cache_key(self, name))
-        
+    
+    def get_projecttime(self):
+        return ProjectTime.objects.filter(task__project=self)
+    
     # def pending_task_count(self):
     #     return self.task_set.filter(completed=False).count()
     # 
@@ -138,7 +141,7 @@ class Project(models.Model):
     # approx_hours_to_invoice.short_description = 'Hours'
     
     def create_invoice(self):
-        times = self.projecttime_set.all()
+        times = self.get_projecttime()
         expenses = self.projectexpense_set.all()
         try:
             last_invoice_date = Invoice.objects.filter(projects=self).order_by('-creation_date')[0].creation_date
@@ -478,4 +481,3 @@ class QuoteRow(models.Model):
     
     def amount(self):
         return (self.price * self.quantity)
-

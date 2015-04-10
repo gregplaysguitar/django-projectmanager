@@ -62,7 +62,7 @@ class ProjectAdmin(RestrictedByUsers):
     
     def latest_time(self, obj):
         try:
-            return obj.projecttime_set.all().order_by('-start')[0].start.date()
+            return obj.get_projecttime().order_by('-start')[0].start.date()
         except IndexError:
             return None
     latest_time.admin_order_field = 'latest_time'
