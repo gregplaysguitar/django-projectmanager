@@ -110,7 +110,8 @@ def _projecttime_to_json(projecttime):
     return  {
         '_id': projecttime.id,
         "_description": projecttime.description,
-        '_project_id': projecttime.project_id,
+        '_task_id': projecttime.task_id,
+        '_project_id': projecttime.task.project_id,
         'start': projecttime.start.strftime("%Y-%m-%d %H:%M"),
         'end': projecttime.end.strftime("%Y-%m-%d %H:%M"),
         'title': "{0}: {1}".format(projecttime.project, projecttime.description),
