@@ -231,7 +231,6 @@ def projecttime_summary(request, project_pk):
             unicode(projecttime.description),
         ])
 
-
     response['Content-Type'] = 'text/csv'
     response['Content-Disposition'] = 'attachment; filename="projecttime_summary_%s.csv"' % project.slug
     return response

@@ -80,7 +80,6 @@ class ProjectAdmin(RestrictedByUsers):
     links.short_description = ' '                
     links.allow_tags = True
 
-
 admin.site.register(Project, ProjectAdmin)
 
 
@@ -143,6 +142,7 @@ class TaskAdmin(RestrictedByUsers):
     list_display = ('project', 'task', 'estimated_hours', 'completed', 'completion_date', 'creation_date')
     search_fields = ('project__name', 'task', 'comments')
     raw_id_fields = ('project',)
+
 admin.site.register(Task, TaskAdmin)
 
 
@@ -175,7 +175,6 @@ class HostingClientAdmin(RestrictedByUsers):
         invoices = create_invoice_for_hosting_clients(queryset)
         if invoices:
             return HttpResponseRedirect(reverse('admin:projectmanager_invoice_change', args=(invoices[0].pk,)) + '?paid__exact=0')
-
 
 admin.site.register(HostingClient, HostingClientAdmin)
 
