@@ -15,6 +15,10 @@ class Migration(migrations.Migration):
             model_name='projecttime',
             name='project',
         ),
+        migrations.RemoveField(
+            model_name='invoicerow',
+            name='project',
+        ),
         migrations.AlterField(
             model_name='task',
             name='comments',

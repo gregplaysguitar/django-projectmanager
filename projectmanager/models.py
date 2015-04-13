@@ -191,11 +191,27 @@ class Task(models.Model):
     completed = models.BooleanField(default=False)
     creation_date = models.DateTimeField(auto_now_add=True)
     completion_date = models.DateTimeField(null=True, editable=False)
-    estimated_hours = models.DecimalField(max_digits=5, decimal_places=2, 
-                                          default=0, null=True)
+    quoted_hours = models.DecimalField(max_digits=5, decimal_places=2, 
+                                          default=0, null=True, blank=True)
 
     objects = ForProjectUserManager()
-
+    
+    def total_hours(self):
+        return ProjectTime.objects.filter(task=self) \
+                          .aggregate(total=models.Sum('_hours'))['total'] or 0
+    
+    def invoiceable_hours(self):
+        if not self.completed:
+            return 0
+        elif self.quoted_hours:
+            return self.quoted_hours
+        else:
+            return self.total_hours()
+    
+    def invoiced_hours(self):
+        return InvoiceRow.objects.filter(task=self) \
+                         .aggregate(total=models.Sum('quantity'))['total'] or 0
+    
     @models.permalink
     def get_absolute_url(self):
         return ('projectmanager.views.tasks',)
@@ -218,14 +234,19 @@ class ProjectTimeQuerySet(models.QuerySet):
                            Q(task__project__owner=user))
 
 
+def round_datetime(dt):
+    minutes = round((dt.minute + float(dt.second) / 60) / 15) * 15 - dt.minute
+    return dt + datetime.timedelta(minutes=minutes, seconds=-dt.second)
+
+
 class ProjectTime(models.Model):
     creation_date = models.DateTimeField(auto_now_add=True)
     start = models.DateTimeField(db_index=True)
     end = models.DateTimeField(db_index=True)
-    description = models.TextField()
+    description = models.TextField(blank=True, default='')
     # project = models.ForeignKey(Project)
     task = models.ForeignKey(Task)
-    _time = models.DecimalField(max_digits=4, decimal_places=2, null=True, editable=False)
+    _hours = models.DecimalField(max_digits=4, decimal_places=2, editable=False)
     
     objects = default_manager_from_qs(ProjectTimeQuerySet)()
     
@@ -241,29 +262,19 @@ class ProjectTime(models.Model):
     
     def total_time(self):
         return (self.end - self.start)
-    
-    def get_absolute_url(self):
-        # TODO 
-        return "/time/%s-%s-%s/" % (self.start.year, self.start.month, self.start.day)
 
     def save(self, force_insert=False, force_update=False, using=None):
         self.start = round_datetime(self.start)
         self.end = round_datetime(self.end)
         
-        self._time = str((self.total_time().days * 24 + self.total_time().seconds / 3600) + (((0.0 + self.total_time().seconds / 60) % 60) / 60))
+        hours = self.total_time().days * 24 + self.total_time().seconds / 3600
+        part_hours = ((0.0 + self.total_time().seconds / 60) % 60) / 60
+        self._hours = str(hours + part_hours)
 
         super(ProjectTime, self).save(force_insert, force_update, using)
 
 
-def activate_project(sender, instance, **kwargs):
-    if instance.project.hidden and instance.project.billable:
-        instance.project.hidden = False
-        instance.project.save()
-post_save.connect(activate_project, sender=ProjectTime)
 
-def round_datetime(dt):
-    return dt + datetime.timedelta(minutes=(round(float(dt.minute + float(dt.second) / 60) / 15) * 15 - dt.minute), seconds=-dt.second)
-    
 class ProjectExpense(models.Model):
     creation_date = models.DateTimeField(auto_now_add=True)
     amount = models.DecimalField(max_digits=10, decimal_places=2)
@@ -286,7 +297,7 @@ class Invoice(models.Model):
     description = models.CharField(max_length=255, blank=True)
     address = models.TextField(blank=True)
     paid = models.BooleanField(db_index=True)
-    projects = models.ManyToManyField(Project, through="InvoiceRow")
+    # projects = models.ManyToManyField(Project, through="InvoiceRow")
     
     objects = ForProjectUserManager()
     
@@ -320,13 +331,12 @@ def create_invoice_for_projects(project_qs):
             quantity=project.approx_hours_to_invoice(),
             price=project.hourly_rate,
         )
-        
     
     return new_invoice
 
 
 class InvoiceRow(models.Model):
-    project = models.ForeignKey(Project)
+    task = models.ForeignKey(Task)
     invoice = models.ForeignKey(Invoice)
     detail = models.CharField(max_length=255, blank=True)
     quantity = models.DecimalField(max_digits=10, decimal_places=2)
