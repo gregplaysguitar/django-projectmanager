@@ -12,9 +12,9 @@ class ProjectExpenseInline(admin.TabularInline):
     model = ProjectExpense
     extra = 1
     
-class TaskInline(admin.TabularInline):
-    model = Task
-    extra = 1
+# class TaskInline(admin.TabularInline):
+#     model = Task
+#     extra = 1
 
 #class ProjectTimeInline(admin.TabularInline):
 #   model = ProjectTime
@@ -48,7 +48,7 @@ class ProjectAdmin(RestrictedByUsers):
     prepopulated_fields = {
         'slug': ('client', 'name',)
     }
-    inlines = [ProjectExpenseInline, TaskInline]
+    inlines = [ProjectExpenseInline, ]
     actions = ['create_invoice_for_selected', 'make_completed', 'make_hidden']
     exclude = ('owner', )
     
@@ -99,14 +99,16 @@ admin.site.register(ProjectTime, ProjectTimeAdmin)
 class InvoiceRowInline(admin.TabularInline):
     model = InvoiceRow
     extra = 2
-    raw_id_fields = ('project',)
+    raw_id_fields = ('task',)
 
-class InvoiceAdmin(RestrictedByUsers):
-    user_field = 'project__owner'
-    is_many_field = False
+# class InvoiceAdmin(RestrictedByUsers):
+#     user_field = 'project__owner'
+#     is_many_field = False
     
+class InvoiceAdmin(admin.ModelAdmin):
     list_display = ('client', 'description', 'creation_date_display', 'subtotal', 'paid', 'invoice')
-    list_filter = ('projects', 'creation_date', 'paid')
+    list_filter = (# 'invoicerow__task__project',
+                   'creation_date', 'paid')
     inlines = [InvoiceRowInline,]
     actions = ['make_paid',]
     search_fields = ['client', 'email', 'description', 'address']
@@ -138,10 +140,16 @@ admin.site.register(Invoice, InvoiceAdmin)
 class TaskAdmin(RestrictedByUsers):
     user_field = 'project__owner'
     is_many_field = False
-    list_filter = ('completed', 'creation_date', 'project', )
-    list_display = ('project', 'task', 'estimated_hours', 'completed', 'completion_date', 'creation_date')
+    list_filter = ('completed', 'creation_date', )
+    list_display = ('project', 'task', 'total_hours', 'invoiceable_hours',
+                    'invoiced_hours', 'get_completed', )
     search_fields = ('project__name', 'task', 'comments')
     raw_id_fields = ('project',)
+    
+    def get_completed(self, obj):
+        return obj.completion_date.date() if obj.completed else ''
+    get_completed.admin_order_field = 'completed'
+    get_completed.short_description = 'Completed'
 
 admin.site.register(Task, TaskAdmin)
 
@@ -179,11 +187,6 @@ class HostingClientAdmin(RestrictedByUsers):
 admin.site.register(HostingClient, HostingClientAdmin)
 
 
-admin.site.register(InvoiceRow, 
-    search_fields = ('invoice__client', 'detail'),
-    list_display = ('project', 'invoice', 'amount', 'detail', 'invoice_date'),
-    list_filter = ('project', 'invoice', ),
-)
 
 
 class QuoteRowInline(admin.TabularInline):
