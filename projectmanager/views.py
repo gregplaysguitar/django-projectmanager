@@ -1,3 +1,5 @@
+import json
+
 from django.db.models.query_utils import Q
 from django.views.decorators.http import require_POST
 from jsonresponse import JsonResponse
@@ -20,6 +22,12 @@ import csv
 
 from forms import ProjectTimeForm, AddTaskForm
 from models import Project, ProjectTime, Task, Invoice, Quote
+
+
+class JsonResponse(HttpResponse):
+    def __init__(self, data):
+        super(JsonResponse, self).__init__(json.dumps(data), 
+                                           content_type="application/json")
 
 
 @login_required

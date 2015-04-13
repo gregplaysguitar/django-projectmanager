@@ -1,5 +1,6 @@
 import datetime, decimal
 import hashlib
+import calendar
 
 from django.db import models
 from django.conf import settings
@@ -9,10 +10,14 @@ from django.db.models.signals import pre_save, post_save, post_init
 from django.contrib.auth.models import User
 from django.db.models import Q, Sum
 
-from string_utils import smart_truncate
-import calendar
-
 from . import settings as pm_settings
+
+
+def smart_truncate(content, length=100, suffix='...'):
+    if len(content) <= length:
+        return content
+    else:
+        return content[:length].rsplit(' ', 1)[0] + suffix
 
 
 def cache_key(obj, func_name, *args, **kwargs):
