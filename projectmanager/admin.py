@@ -12,9 +12,9 @@ class ProjectExpenseInline(admin.TabularInline):
     model = ProjectExpense
     extra = 1
     
-# class TaskInline(admin.TabularInline):
-#     model = Task
-#     extra = 1
+class TaskInline(admin.TabularInline):
+    model = Task
+    extra = 1
 
 #class ProjectTimeInline(admin.TabularInline):
 #   model = ProjectTime
@@ -29,9 +29,9 @@ class ProjectAdmin(RestrictedByUsers):
         qs = super(ProjectAdmin, self).queryset(request)
         return qs.annotate(latest_time=models.Max('projecttime__start'))
         
-    def save_model(self, request, obj, form, **kwargs):
-        obj.owner = request.user
-        obj.save()
+    def save_model(self, req, obj, *args, **kwargs):
+        obj.owner = req.user
+        return super(ProjectAdmin, self).save_model(req, obj, *args, **kwargs)
 
     def make_completed(self, request, queryset):
         queryset.update(completed=True)
@@ -44,11 +44,11 @@ class ProjectAdmin(RestrictedByUsers):
                     'links', )
     list_display_links = ('get_client', 'name')
     list_filter = ('completed', 'creation_date', 'billable', 'hidden', 'client')
-    search_fields = ('name', 'client', 'slug', 'description')
+    search_fields = ('name', 'client__name', 'slug', 'description')
     prepopulated_fields = {
         'slug': ('client', 'name',)
     }
-    inlines = [ProjectExpenseInline, ]
+    inlines = [ProjectExpenseInline, TaskInline, ]
     actions = ['create_invoice_for_selected', 'make_completed', 'make_hidden']
     exclude = ('owner', )
     
@@ -62,9 +62,12 @@ class ProjectAdmin(RestrictedByUsers):
     
     def latest_time(self, obj):
         try:
-            return obj.get_projecttime().order_by('-start')[0].start.date()
+            projecttime = obj.get_projecttime().order_by('-start')[0]
         except IndexError:
-            return None
+            return ''
+        else:
+            return projecttime.start.date()
+            
     latest_time.admin_order_field = 'latest_time'
         
     def links(self, obj):

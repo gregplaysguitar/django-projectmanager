@@ -154,18 +154,6 @@ class Project(models.Model):
     #         return ''
     # approx_hours_to_invoice.short_description = 'Hours'
     
-    def create_invoice(self):
-        times = self.get_projecttime()
-        expenses = self.projectexpense_set.all()
-        try:
-            last_invoice_date = Invoice.objects.filter(projects=self).order_by('-creation_date')[0].creation_date
-            times = times.filter(creation_date__gte=last_invoice_date)
-            expenses = expenses.filter(creation_date__gte=last_invoice_date)
-        except IndexError:
-            pass
-        
-        new_invoice = Invoice.objects.create(client=self.client, description=self.name)
-        return new_invoice
     
     @models.permalink
     def projecttime_summary_url(self):
@@ -222,7 +210,7 @@ class Task(models.Model):
         return ('projectmanager.views.tasks',)
 
     def __unicode__(self):
-        return "%s (%s)" % (self.task, self.project.name)
+        return "%s: %s" % (self.project.name, self.task)
 
     def save(self, *args, **kwargs):
         if self.completed and not self.completion_date:
@@ -351,7 +339,8 @@ class InvoiceRow(models.Model):
         return (self.price * self.quantity)
 
     def __unicode__(self):
-        return "%s on %s (%s)" % (self.amount(), self.project.name, self.invoice.creation_date.strftime('%d/%m/%Y'))
+        created = self.invoice.creation_date.strftime('%d/%m/%Y')
+        return "%s on %s (%s)" % (self.amount(), self.task.task, created)
         
     # @property
     # def is_time(self):
