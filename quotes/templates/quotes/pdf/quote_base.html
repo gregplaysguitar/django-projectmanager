@@ -1,0 +1,118 @@
+{% load md2 %}
+<html>
+
+<head>
+<title>Quote: {{ quote.description }}</title>
+</head>
+
+<body>
+	
+<style>
+body {
+	text-align: left;
+}
+div#wrap {
+	width: 800px;
+	margin: 1em auto;
+
+}
+table {
+	width: 100%;
+}
+table th, table td {
+	border-bottom: 1px solid #CCC;
+	text-align: left;
+}
+table td.spacer,
+table tr.bottom th,
+table tr.bottom td {
+	border-bottom: none;
+}
+.spacer {
+	height: 4em;
+}
+li {
+	margin-bottom: 1em;
+}
+</style>
+
+<div id="wrap">
+
+<h1>Quote &mdash; {{ quote.description }}</h1>
+
+{% ifnotequal type "pdf" %}
+<a href="{{ quote.pdf_filename }}">Download as pdf</a>
+{% endifnotequal %}
+<hr>
+
+<table border="0" cellpadding="5" cellspacing="0">
+
+	<tr>
+		<th colspan="2">Client:</th>
+		<th>Quote from:</th>
+		<th>{% block name %}NAME{% endblock %}</th>
+	</tr>
+	<tr>
+		<td rowspan="2" colspan="2" valign="top">
+			{{ quote.client }}<br>
+			{{ quote.address|linebreaksbr }}
+		</td>
+		<th>Contact:</th>
+		<th>{% block contact %}CONTACT{% endblock %}</th>
+	</tr>
+	<tr>
+		<th>Quote date:</th>
+		<th>{{ quote.creation_date|date:"d/m/Y" }}</th>
+	</tr>
+
+	
+	<tr><td class="spacer" colspan="4"></td></tr>
+
+	<tr>
+		<th>Detail</th>
+		<th>Quantity</th>
+		<th>Price per unit.</th>
+		<th>Cost</th>
+	</tr>
+	
+	{% for row in quote.quoterow_set.all %}
+	<tr>
+		<td>{{ row.detail }}</td>
+		<td>{{ row.quantity }}</td>
+		<td>${{ row.price|floatformat:'-2' }}</td>
+		<td>${{ row.amount|floatformat:'-2' }}</td>
+	</tr>
+	{% endfor %}
+	
+	<tr class="bottom">
+		<td colspan="2" rowspan="4">&nbsp;</td>
+		<td class="spacer" colspan="2"></td>
+	</tr>
+
+	<tr>
+		<td>Subtotal:</td>
+		<td>${{ quote.subtotal|floatformat:'-2' }}</td>
+	</tr>
+	<tr>
+		<td>GST:</td>
+		<td>${{ quote.gst_amount|floatformat:'-2' }}</td>
+	</tr>
+	<tr class="bottom">
+		<th>TOTAL:</th>
+		<th>${{ quote.total|floatformat:'-2' }}</th>
+	</tr>
+	
+</table>
+
+{% if quote.notes %}
+    <hr>
+    <br><br>
+    
+    <h3>Notes</h3>
+    {{ quote.notes|linebreaks %}
+{% endif %}
+
+</div>
+
+</body>
+</html>

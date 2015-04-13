@@ -2,7 +2,6 @@ import json
 
 from django.db.models.query_utils import Q
 from django.views.decorators.http import require_POST
-from jsonresponse import JsonResponse
 from django.shortcuts import render_to_response, get_object_or_404
 from django.http import HttpResponseRedirect, HttpResponse, Http404
 from datetime import time as time_module, datetime, timedelta
@@ -204,7 +203,8 @@ def render_to_pdf(template_src, context_dict):
     result = StringIO.StringIO()
     pdf = pisa.pisaDocument(StringIO.StringIO(html.encode("UTF-8")), result)
     if not pdf.err:
-        return http.HttpResponse(result.getvalue(), mimetype='application/pdf')
+        return http.HttpResponse(result.getvalue(), 
+                                 content_type='application/pdf')
     return http.HttpResponse('We had some errors<pre>%s</pre>' % cgi.escape(html))
 
 

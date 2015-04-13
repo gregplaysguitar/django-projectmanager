@@ -187,24 +187,8 @@ class HostingClientAdmin(RestrictedByUsers):
 admin.site.register(HostingClient, HostingClientAdmin)
 
 
-
-
-class QuoteRowInline(admin.TabularInline):
-    model = QuoteRow
-    extra = 1
-    
-    
-class QuoteAdmin(RestrictedByUsers):
-    user_field = 'project__owner'
-    is_many_field = False
-
-    list_display = ('client', 'description', 'creation_date', 'quote', )
-    list_filter = ('creation_date',)
-    search_fields = ('description', 'client', )
-    inlines = [QuoteRowInline, ]
-    
-    def quote(self, instance):
-        return u'<a href="/quote/%d/%s">pdf</a>' % (instance.id, instance.pdf_filename()) + u' | <a href="/quote/%d/">html</a>' % (instance.id)
-    quote.allow_tags = True
-
-admin.site.register(Quote, QuoteAdmin)
+# admin.site.register(InvoiceRow, 
+#     search_fields = ('invoice__client', 'detail'),
+#     list_display = ('task', 'invoice', 'amount', 'detail', 'invoice_date'),
+#     list_filter = ('task', 'invoice', ),
+# )
