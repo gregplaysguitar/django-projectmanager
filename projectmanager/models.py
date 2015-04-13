@@ -316,15 +316,23 @@ class Invoice(models.Model):
 
 
 def create_invoice_for_projects(project_qs):
-    new_invoice = Invoice.objects.create(client=project_qs.all()[0].client)
+    new_invoice = Invoice(paid=False)
+    for project in  project_qs.exclude(client__isnull=True)[:1]:
+        new_invoice.email = project.client.email
+        new_invoice.client = project.client.name
+    new_invoice.save()
+
     for project in project_qs.all():
-        InvoiceRow.objects.create(
-            invoice=new_invoice,
-            project=project,
-            detail=project.name,
-            quantity=project.approx_hours_to_invoice(),
-            price=project.hourly_rate,
-        )
+        for task in Task.objects.filter(project=project, completed=True):
+            to_invoice = task.invoiceable_hours() - task.invoiced_hours()
+            if to_invoice:
+                InvoiceRow.objects.create(
+                    invoice=new_invoice,
+                    task=task,
+                    detail=unicode(task) ,
+                    quantity=to_invoice,
+                    price=project.hourly_rate,
+                )
     
     return new_invoice
 
