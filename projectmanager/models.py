@@ -56,6 +56,7 @@ def default_manager_from_qs(qs_cls, **kwargs):
 
 class Client(models.Model):
     name = models.CharField(max_length=200)
+    email = models.EmailField(blank=True, default='')
     
     def __unicode__(self):
         return self.name
