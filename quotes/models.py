@@ -29,7 +29,7 @@ class Quote(models.Model):
     
     @models.permalink
     def get_absolute_url(self):
-        return ('projectmanager.views.quote', [self.pk])
+        return ('quotes.views.quote', [self.pk])
 
 
 class QuoteRow(models.Model):
