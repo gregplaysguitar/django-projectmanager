@@ -39,7 +39,10 @@ class ProjectAdmin(RestrictedByUsers):
     def make_hidden(self, request, queryset):
         queryset.update(hidden=True)
     
-    # list_display = ('name', 'client', 'total_estimated_hours', 'total_time', 'latest_time', 'billing_type', 'total_invoiced', 'time_invoiced', 'unbilled_time', 'total_to_invoice', 'approx_hours_to_invoice', 'completed', 'links', )
+    # list_display = ('name', 'client', 'total_estimated_hours', 'total_time',
+    #                 'latest_time', 'billing_type', 'total_invoiced',
+    #                 'time_invoiced', 'unbilled_time', 'total_to_invoice',
+    #                 'approx_hours_to_invoice', 'completed', 'links', )
     list_display = ('get_client', 'name', 'total_time', 'latest_time', 'completed',
                     'links', )
     list_display_links = ('get_client', 'name')

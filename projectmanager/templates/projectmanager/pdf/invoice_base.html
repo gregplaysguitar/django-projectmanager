@@ -1,4 +1,3 @@
-{% load md2 %}
 <html>
 
 <head>
@@ -55,7 +54,7 @@ li {
 	<tr>
 		<td rowspan="3" colspan="2" valign="top">
 			{{ invoice.client }}<br>
-			{{ invoice.address|markdown2 }}
+			{{ invoice.address|linebreaks }}
 		</td>
 		<th>GST Number:</th>
 		<th>{% block gst_number %}GST NUMBER{% endblock %}</th>

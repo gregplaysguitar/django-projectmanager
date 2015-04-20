@@ -43,8 +43,7 @@ class ProjectTimeForm(forms.ModelForm):
             data['task'] = Task.objects.create(task=data['new_task'], 
                                                project=data['project'])
         return data
-
-        
+    
 
 class AddTaskForm(forms.ModelForm):
     #task = forms.CharField()
