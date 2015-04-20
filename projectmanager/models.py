@@ -3,6 +3,7 @@ import hashlib
 import calendar
 
 from django.db import models
+from django.db.models import F
 from django.conf import settings
 from django.core.cache import cache
 from django.http import HttpResponseRedirect
@@ -295,6 +296,13 @@ class Invoice(models.Model):
     
     objects = ForProjectUserManager()
     
+    def invoice_summary(self):
+        '''Return invoice rows summarized by project.'''
+        return self.invoicerow_set.order_by('task__project__name') \
+                   .values('task__project__name', 'price') \
+                   .annotate(amount=models.Sum(F('quantity') * F('price'))) \
+                   .annotate(q_sum=models.Sum('quantity'))
+    
     def pdf_filename(self):
         return "Invoice %s - %s - %s.pdf" % (self.creation_date.strftime("%Y-%m-%d"), self.client, self.description)
     
@@ -329,7 +337,7 @@ def create_invoice_for_projects(project_qs):
                 InvoiceRow.objects.create(
                     invoice=new_invoice,
                     task=task,
-                    detail=unicode(task) ,
+                    detail='',
                     quantity=to_invoice,
                     price=project.hourly_rate,
                 )
@@ -344,6 +352,9 @@ class InvoiceRow(models.Model):
     quantity = models.DecimalField(max_digits=10, decimal_places=2)
     price = models.DecimalField(max_digits=10, decimal_places=2)
 
+    class Meta:
+        ordering = ('task__project__name', 'task__task')
+    
     def amount(self):
         return (self.price * self.quantity)
 
