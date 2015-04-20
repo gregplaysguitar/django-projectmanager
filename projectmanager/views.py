@@ -116,6 +116,8 @@ def _api_project_time_form(form):
         projecttime = form.save()
         return JsonResponse({
             'status': True,
+            'task': {'id': projecttime.task.pk, 'task': projecttime.task.task,
+                     'project_id': projecttime.task.project_id},
             'event': _projecttime_to_json(projecttime),
         })
     else:

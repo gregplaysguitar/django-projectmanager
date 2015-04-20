@@ -1,8 +1,8 @@
 (function($) {
 
 var task_data;
-function load_task_data(callback) {
-	if (!task_data) {
+function load_task_data(callback, reload) {
+	if (reload || !task_data) {
 		$.get(TASK_DATA_URL, function(data) {
 			task_data = data;
 			callback && callback(task_data);
@@ -20,8 +20,24 @@ function time_form_init(form) {
 	    task = form.find('#id_task'),
 			new_task = form.find('#id_new_task');
 	
-	project.change(function() {
-		var project_id = $(this).val();
+	function reset_form(new_task_data) {
+		new_task.val('');
+		form.find('#id_description').val('');
+		if (new_task_data) {
+			if (!task_data[new_task_data.project_id]) {
+				task_data[new_task_data.project_id] = [];
+			}
+			task_data[new_task_data.project_id].push([new_task_data.id, 
+				                                        new_task_data.task]);
+			if (project.val() == new_task_data.project_id) {
+				update_tasks();
+				task.val(new_task_data.id);
+			}
+		}
+	};
+	
+	function update_tasks(reload) {
+		var project_id = project.val();
 		load_task_data(function(data) {
 			task.html('');
 			if (data[project_id]) {
@@ -32,8 +48,9 @@ function time_form_init(form) {
 			}
 			task.append('<option value="">[new task]</option>');
 			task.change();
-		});
-	});
+		}, reload);
+	};
+	project.change(update_tasks);
 	
 	task.change(function() {
 		var task_id = $(this).val();
@@ -48,11 +65,17 @@ function time_form_init(form) {
 	
 	project.change();
 	task.change();
+	
+	return {
+		'reset_form': reset_form
+	};
 };
+
+
 
 $(document).ready(function() {
 
-  time_form_init($('#add_time'));
+  var add_form = time_form_init($('#add_time'));
 	
   var date = new Date();
 	var d = date.getDate();
@@ -144,6 +167,7 @@ $(document).ready(function() {
 
 		calendar.fullCalendar('renderEvent', data.event, true); // third arg makes make the event "stick"
 		hideAddTimeForm();  // hides the selection band.
+		add_form.reset_form(data.task);
 	};
 
 	function onEditTimeResponse(data, status, xhr)
@@ -153,7 +177,7 @@ $(document).ready(function() {
 			displayFormErrors(data.errors);
 			return;
 		}
-
+		
 		// Update the existing item with the new values.
 		var newevent = calendar.fullCalendar('clientEvents', data.event._id)[0];
 		for(var prop in data.event)
@@ -161,6 +185,7 @@ $(document).ready(function() {
 
 		calendar.fullCalendar('updateEvent', newevent);
 		hideAddTimeForm();  // hides the selection band.
+		add_form.reset_form(data.task);
 	};
 
 	function onAjaxError()
