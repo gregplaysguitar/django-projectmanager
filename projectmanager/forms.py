@@ -25,6 +25,7 @@ class ProjectTimeForm(forms.ModelForm):
         return None
     
     new_task = forms.CharField(max_length=190, required=False)
+    completed = forms.BooleanField()
     
     def __init__(self, *args, **kwargs):
         super(ProjectTimeForm, self).__init__(*args, **kwargs)
@@ -32,7 +33,7 @@ class ProjectTimeForm(forms.ModelForm):
 
     class Meta:
         model = ProjectTime
-        fields = ('start', 'end', 'project', 'task', 'new_task', 
+        fields = ('start', 'end', 'project', 'task', 'new_task', 'completed', 
                   'description', )
     
     def clean(self):
@@ -43,6 +44,19 @@ class ProjectTimeForm(forms.ModelForm):
             data['task'] = Task.objects.create(task=data['new_task'], 
                                                project=data['project'])
         return data
+    
+    def save(self, *args, **kwargs):
+        obj = super(ProjectTimeForm, self).save(*args, **kwargs)
+        
+        # only set completed if specified, otherwise leave alone
+        # TODO let this form "uncomplete" tasks once we have recently-completed
+        # available in the list
+        if self.cleaned_data.get('completed'):
+            self.cleaned_data['task'].completed = True
+            if kwargs.get('commit', True):
+                self.cleaned_data['task'].save()
+        
+        return obj
     
 
 class AddTaskForm(forms.ModelForm):

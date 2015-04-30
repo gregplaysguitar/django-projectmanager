@@ -54,8 +54,10 @@ def project_time_calendar(request):
 
 @login_required
 def project_task_data(request):
+    # TODO retrieve recently completed tasks as well
+    
     qs = Task.objects.filter(completed=False).order_by('project_id') \
-             .values_list('project_id', 'id', 'task')
+             .values_list('project_id', 'id', 'task', 'completed')
     data = {}
     for task in qs:
         if not data.get(task[0]):

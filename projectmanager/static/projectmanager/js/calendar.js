@@ -23,6 +23,7 @@ function time_form_init(form) {
 	function reset_form(new_task_data) {
 		new_task.val('');
 		form.find('#id_description').val('');
+		form.find('#id_completed').attr('checked', false);
 		if (new_task_data) {
 			if (!task_data[new_task_data.project_id]) {
 				task_data[new_task_data.project_id] = [];
@@ -53,6 +54,7 @@ function time_form_init(form) {
 	project.change(update_tasks);
 	
 	task.change(function() {
+		// TODO set "completed" checkbox value to match the selected task
 		var task_id = $(this).val();
 		if (task_id) {
 			new_task.parents('tr').hide();
