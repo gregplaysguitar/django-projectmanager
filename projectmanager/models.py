@@ -95,9 +95,7 @@ class Project(models.Model):
             return self.name
     
     def clear_cache(self):
-        for name in ('total_time', 'total_estimated_hours', 'total_expenses',
-                     'time_invoiced', 'total_invoiced', 'total_cost', 
-                     'total_to_invoice', 'approx_hours_to_invoice'):
+        for name in ('total_hours', 'invoiceable_hours', 'invoiced_hours'):
             cache.delete(cache_key(self, name))
     
     def get_projecttime(self):
@@ -107,11 +105,28 @@ class Project(models.Model):
     #     return self.task_set.filter(completed=False).count()
     
     @cached_method()
-    def total_time(self):
-        delta = sum((item.total_time() for item in self.get_projecttime()),
-                    datetime.timedelta())
-        return (delta.days * 24 + delta.seconds / 3600) + \
-               (((0.0 + delta.seconds / 60) % 60) / 60)
+    def total_hours(self):
+        return sum(t.total_hours() for t in self.task_set.all())
+    
+    @cached_method()
+    def invoiceable_hours(self):
+        tasks = self.task_set.filter(completed=True)
+        return sum(t.invoiceable_hours() for t in tasks)
+    
+    @cached_method()
+    def invoiced_hours(self):
+        tasks = self.task_set.filter(completed=True)
+        return sum(t.invoiced_hours() for t in tasks)
+    
+    @cached_method()
+    def latest_time(self):
+        try:
+            projecttime = self.get_projecttime().order_by('-start')[0]
+        except IndexError:
+            return None
+        else:
+            return projecttime.start.date()
+    latest_time.admin_order_field = 'task__projecttime__start'
     
     # @cached_method()
     # def total_estimated_hours(self, completed=False):

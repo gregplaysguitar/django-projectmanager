@@ -43,9 +43,10 @@ class ProjectAdmin(RestrictedByUsers):
     #                 'latest_time', 'billing_type', 'total_invoiced',
     #                 'time_invoiced', 'unbilled_time', 'total_to_invoice',
     #                 'approx_hours_to_invoice', 'completed', 'links', )
-    list_display = ('get_client', 'name', 'total_time', 'latest_time', 'completed',
+    list_display = ('client', 'name', 'total_hours', 'invoiceable_hours', 
+                    'invoiced_hours', 'latest_time', 'to_invoice', 'completed',
                     'links', )
-    list_display_links = ('get_client', 'name')
+    list_display_links = ('client', 'name')
     list_filter = ('completed', 'creation_date', 'billable', 'hidden', 'client')
     search_fields = ('name', 'client__name', 'slug', 'description')
     prepopulated_fields = {
@@ -55,23 +56,11 @@ class ProjectAdmin(RestrictedByUsers):
     actions = ['create_invoice_for_selected', 'make_completed', 'make_hidden']
     exclude = ('owner', )
     
+    def to_invoice(self, obj):
+        return obj.invoiceable_hours() - obj.invoiced_hours()
+    
     # def unbilled_time(self, obj):
     #     return max(0, obj.total_time() - obj.time_invoiced())
-    
-    def get_client(self, obj):
-        return obj.client.name if obj.client else ''
-    get_client.admin_order_field = 'client__name'
-    get_client.short_description = 'client'
-    
-    def latest_time(self, obj):
-        try:
-            projecttime = obj.get_projecttime().order_by('-start')[0]
-        except IndexError:
-            return ''
-        else:
-            return projecttime.start.date()
-            
-    latest_time.admin_order_field = 'latest_time'
         
     def links(self, obj):
         time_url = reverse('admin:projectmanager_projecttime_changelist')
