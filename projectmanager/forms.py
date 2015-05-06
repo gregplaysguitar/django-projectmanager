@@ -25,7 +25,7 @@ class ProjectTimeForm(forms.ModelForm):
         return None
     
     new_task = forms.CharField(max_length=190, required=False)
-    completed = forms.BooleanField()
+    completed = forms.BooleanField(required=False)
     
     def __init__(self, *args, **kwargs):
         super(ProjectTimeForm, self).__init__(*args, **kwargs)
