@@ -7,7 +7,7 @@ from django.contrib.auth.models import User
 from django.db.models import Sum
 
 from projectmanager.models import InvoiceRow, Invoice, smart_truncate, \
-                                  cached_method
+                                  cached_method, cache_key
 
 
 BILLING_PERIOD_MONTHS_CHOICES = (
