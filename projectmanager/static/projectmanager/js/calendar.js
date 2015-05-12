@@ -213,7 +213,7 @@ $(document).ready(function() {
 		}
 		
 		add_form.update_tasks(false, function() {
-			$('#add_time #id_task').val(event._task[0]);
+			$('#add_time #id_task').val(event._task[0]).change();
 			$('#add_time #id_completed').attr('checked', event._task[2]);
 		}, completed_tasks);
 	};
