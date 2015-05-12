@@ -3,7 +3,7 @@
 var task_data;
 function load_task_data(callback, reload) {
 	if (reload || !task_data) {
-		$.get(TASK_DATA_URL, function(data) {
+		$.get(PROJECTMANAGER_URLS.TASK_DATA, function(data) {
 			task_data = data;
 			callback && callback(task_data);
 		});
@@ -13,63 +13,117 @@ function load_task_data(callback, reload) {
 	}
 };
 // load_task_data();
+function remove_from_task_data(project_id, task) {
+	// var task = new Task(task_data);
+	
+	console.log('remove', task)
+	var existing_tasks = task_data[project_id] || [];
+	task_data[project_id] = [];
+	for (var i = 0; i < existing_tasks.length; i++) {
+		if (existing_tasks[i][0] !== task[0]) {
+			task_data[project_id].push(existing_tasks[i]);
+		}
+	}
+};
+function add_to_task_data(project_id, task) {
+	if (!task_data[project_id]) {
+		task_data[project_id] = []
+	}
+	var index = null;
+	for (var i = 0; i < task_data[project_id].length; i++) {
+		if (task_data[project_id][i][0] === task[0]) {
+			index = i;
+			break;
+		}
+	}
+	console.log(index);
+	if (index !== null) {
+		task_data[project_id][index] = task;
+	}
+	else {
+		task_data[project_id].push(task);
+	}
+};
 
 
 function time_form_init(form) {
 	var project = form.find('#id_project'),
 	    task = form.find('#id_task'),
-			new_task = form.find('#id_new_task');
+			new_task = form.find('#id_new_task'),
+			completed = form.find('#id_completed');
+	
 	
 	function reset_form(new_task_data) {
 		new_task.val('');
 		form.find('#id_description').val('');
 		form.find('#id_completed').attr('checked', false);
 		if (new_task_data) {
-			if (!task_data[new_task_data.project_id]) {
-				task_data[new_task_data.project_id] = [];
+			if (new_task_data.task[2]) {
+				remove_from_task_data(new_task_data.project_id, new_task_data.task);
 			}
-			task_data[new_task_data.project_id].push([new_task_data.id, 
-				                                        new_task_data.task]);
-			if (project.val() == new_task_data.project_id) {
-				update_tasks();
-				task.val(new_task_data.id);
+			else {
+				add_to_task_data(new_task_data.project_id, new_task_data.task);
 			}
+			update_tasks();
+			// if (project.val() == new_task_data.project_id && !new_task_data.task[2]) {
+			// 	task.val(new_task_data.task[0]);
+			// }
 		}
 	};
 	
-	function update_tasks(reload) {
+	function add_optgroup(select, name, opts) {
+		var optgroup = $('<optgroup>').attr('label', name).appendTo(select);
+		 for (var i = 0; i < opts.length; i++) {
+			 optgroup.append($('<option>').attr('value', opts[i][0])
+															      .text(opts[i][1]));
+		}
+		return optgroup;
+	};
+	
+	function update_tasks(reload, callback, completed_tasks) {
 		var project_id = project.val();
 		load_task_data(function(data) {
 			task.html('');
-			if (data[project_id]) {
-				for (var i = 0; i < data[project_id].length; i++) {
-					task.append($('<option>').attr('value', data[project_id][i][0])
-					                         .text(data[project_id][i][1]));
-				}
-			}
 			task.append('<option value="">[new task]</option>');
+			
+			if (data[project_id]) {
+				add_optgroup(task, 'In progress', data[project_id]);
+			}
+			if (completed_tasks) {
+				add_optgroup(task, 'Completed', completed_tasks).data('completed', true);
+			}
+			
 			task.change();
+			callback && callback();
 		}, reload);
 	};
-	project.change(update_tasks);
+	project.change(function() {
+		update_tasks()
+	});
 	
 	task.change(function() {
-		// TODO set "completed" checkbox value to match the selected task
-		var task_id = $(this).val();
+		var task_id = $(this).val(),
+				completed_val;
+				
 		if (task_id) {
 			new_task.parents('tr').hide();
+			completed_val = $(this).find('option:selected').parent('optgroup')
+			                       .data('completed') || false;
 		}
 		else {
 			new_task.parents('tr').show();
 			new_task.focus();
+			completed_val = false;
 		}
+		completed.attr('checked', completed_val);
 	});
 	
 	project.change();
 	task.change();
 	
 	return {
-		'reset_form': reset_form
+		'reset_form': reset_form,
+		'update_tasks': update_tasks,
 	};
 };
 
@@ -96,7 +150,7 @@ $(document).ready(function() {
 		defaultView: 'agendaWeek',
 		//contentHeight: 1500,
 		firstDay: 1, // monday
-		events: "/api/time/list/",
+		events: PROJECTMANAGER_URLS.PROJECT_TIME_LIST,
 		loading: onCalendarLoading,
 		select: onCalendarSelect,
 		eventDrop: onCalendarEventUpdate,
@@ -127,17 +181,20 @@ $(document).ready(function() {
 		$('#add_time #id_end').val(formatDate(end));
 		$('#add_time #id_description').val("");
 		$('#add_time #id_project').focus();
+		$('#add_time #id_completed').attr('checked', false);
 		$("#add_time, #add_time_overlay").fadeIn(300);
 		$('#add_time .delete').hide();
+		
+		add_form.update_tasks();
 	};
 
 	function onCalendarEventUpdate(event, delta)
 	{
-		_jQueryPost("/api/time/move/", _eventToPostVars(event), null);
+		_jQueryPost(PROJECTMANAGER_URLS.PROJECT_TIME_MOVE, 
+			          _eventToPostVars(event), null);
 	};
 
-	function onCalendarEventClick(event)
-	{
+	function onCalendarEventClick(event) {
 		// Prefill the form.
 		$('form.addtime #id_id').val(event._id);
 		$('#add_time #id_start').val(formatDate(event.start));
@@ -146,6 +203,19 @@ $(document).ready(function() {
 		$('#add_time #id_description').val(event._description).focus();
 		$("#add_time, #add_time_overlay").fadeIn(300);
 		$('#add_time .delete').show().attr('href', $('#add_time .delete').attr('href').replace('/0/', '/' + event._id + '/'));
+		
+		if (event._task[2]) {
+			// need to add it to the task select because only incomplete are shown
+			var completed_tasks = [[event._task[0], event._task[1]]];
+		}
+		else {
+			var completed_tasks = null;
+		}
+		
+		add_form.update_tasks(false, function() {
+			$('#add_time #id_task').val(event._task[0]);
+			$('#add_time #id_completed').attr('checked', event._task[2]);
+		}, completed_tasks);
 	};
 
 	function onTimeFormSubmit(event)
@@ -154,9 +224,9 @@ $(document).ready(function() {
 		var form = $("form.addtime");
 
 		if( !parseInt(form[0].elements['id'].value) )
-			_jQueryPost("/api/time/add/", $("form.addtime").serialize(), onAddTimeResponse);
+			_jQueryPost(PROJECTMANAGER_URLS.PROJECT_TIME_ADD, $("form.addtime").serialize(), onAddTimeResponse);
 		else
-			_jQueryPost("/api/time/edit/", $("form.addtime").serialize(), onEditTimeResponse);
+			_jQueryPost(PROJECTMANAGER_URLS.PROJECT_TIME_EDIT, $("form.addtime").serialize(), onEditTimeResponse);
 	};
 
 	function onAddTimeResponse(data, status, xhr)
@@ -169,7 +239,8 @@ $(document).ready(function() {
 
 		calendar.fullCalendar('renderEvent', data.event, true); // third arg makes make the event "stick"
 		hideAddTimeForm();  // hides the selection band.
-		add_form.reset_form(data.task);
+		add_form.reset_form({task: data.event._task, 
+			                   project_id: data.event._project_id});
 	};
 
 	function onEditTimeResponse(data, status, xhr)
@@ -187,7 +258,8 @@ $(document).ready(function() {
 
 		calendar.fullCalendar('updateEvent', newevent);
 		hideAddTimeForm();  // hides the selection band.
-		add_form.reset_form(data.task);
+		add_form.reset_form({task: data.event._task, 
+			                   project_id: data.event._project_id});
 	};
 
 	function onAjaxError()
@@ -248,10 +320,9 @@ $(document).ready(function() {
 			'title': event.title,
 			'start': formatDate(event.start),
 			'end': formatDate(event.end),
+			'project_id': event._project_id,
 			'allDay': event.allDay
 		};
-		if( event._project_id )
-			postvars['project_id'] = event._project_id;
 		return jQuery.param(postvars);
 	};
 

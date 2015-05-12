@@ -52,12 +52,13 @@ def project_time_calendar(request):
     })
 
 
+TASK_FIELDS = ('id', 'task', 'completed')
 @login_required
 def project_task_data(request):
     # TODO retrieve recently completed tasks as well
     
     qs = Task.objects.filter(completed=False).order_by('project_id') \
-             .values_list('project_id', 'id', 'task', 'completed')
+             .values_list('project_id', *TASK_FIELDS)
     data = {}
     for task in qs:
         if not data.get(task[0]):
@@ -118,8 +119,6 @@ def _api_project_time_form(form):
         projecttime = form.save()
         return JsonResponse({
             'status': True,
-            'task': {'id': projecttime.task.pk, 'task': projecttime.task.task,
-                     'project_id': projecttime.task.project_id},
             'event': _projecttime_to_json(projecttime),
         })
     else:
@@ -130,11 +129,12 @@ def _api_project_time_form(form):
 
 
 def _projecttime_to_json(projecttime):
+    task = projecttime.task
     return  {
         '_id': projecttime.id,
         "_description": projecttime.description,
-        '_task_id': projecttime.task_id,
-        '_project_id': projecttime.task.project_id,
+        '_task': [getattr(task, f) for f in TASK_FIELDS],
+        '_project_id': task.project_id,
         'start': projecttime.start.strftime("%Y-%m-%d %H:%M"),
         'end': projecttime.end.strftime("%Y-%m-%d %H:%M"),
         'title': "{0}: {1}".format(projecttime.project, projecttime.task.task),

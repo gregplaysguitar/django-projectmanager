@@ -33,7 +33,13 @@
 <link rel="stylesheet" type="text/css" href="{% static 'projectmanager/css/fullcalendar.css' %}">
 <link rel="stylesheet" type="text/css" href="{% static 'projectmanager/css/fullcalendar.print.css' %}" media="print" />
 <script type="text/javascript">
-  TASK_DATA_URL = '{% url 'projectmanager.views.project_task_data' %}';
+var PROJECTMANAGER_URLS = {
+  TASK_DATA: '{% url 'projectmanager.views.project_task_data' %}',
+  PROJECT_TIME_LIST: '{% url 'projectmanager.views.api_project_time_list' %}',
+  PROJECT_TIME_MOVE: '{% url 'projectmanager.views.api_project_time_move' %}',
+  PROJECT_TIME_ADD: '{% url 'projectmanager.views.api_project_time_add' %}',
+  PROJECT_TIME_EDIT: '{% url 'projectmanager.views.api_project_time_edit' %}'
+};
 </script>
 <script type="text/javascript" src="{% static 'projectmanager/js/lib/jquery-1.5.2.min.js' %}"></script>
 <script type="text/javascript" src="{% static 'projectmanager/js/lib/jquery-ui-1.8.11.custom.min.js' %}"></script>
