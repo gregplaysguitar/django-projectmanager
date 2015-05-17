@@ -1,14 +1,13 @@
+import json
+
 from django.db.models.query_utils import Q
-from django.utils import simplejson
 from django.views.decorators.http import require_POST
-from jsonresponse import JsonResponse
 from django.shortcuts import render_to_response, get_object_or_404
 from django.http import HttpResponseRedirect, HttpResponse, Http404
 from datetime import time as time_module, datetime, timedelta
 from django.contrib.auth.decorators import login_required
 from django.core.urlresolvers import reverse
 from django.forms.models import modelformset_factory, model_to_dict
-
 
 # pdf stuff
 from django import http
@@ -21,7 +20,13 @@ import cgi
 import csv
 
 from forms import ProjectTimeForm, AddTaskForm
-from models import Project, ProjectTime, Task, Invoice, Quote
+from models import Project, ProjectTime, Task, Invoice
+
+
+class JsonResponse(HttpResponse):
+    def __init__(self, data):
+        super(JsonResponse, self).__init__(json.dumps(data), 
+                                           content_type="application/json")
 
 
 @login_required
@@ -34,19 +39,32 @@ def index(request):
     return render_to_response('projectmanager/index.html', data)
 
 
-
-
 @login_required
 def project_time_calendar(request):
     # get latest ProjectTime and use its project as the default
     formData = {}
-    #if ProjectTime.objects.count():
-    #    formData['project'] = ProjectTime.objects.all().order_by('-start')[0].project.id
+    if ProjectTime.objects.count():
+        formData['project'] = ProjectTime.objects.all().order_by('-start')[0].project.id
     time_form = ProjectTimeForm(initial=formData)
 
     return render_to_response('projectmanager/calendar.html', {
         'time_form': time_form,
     })
+
+
+TASK_FIELDS = ('id', 'task', 'completed')
+@login_required
+def project_task_data(request):
+    # TODO retrieve recently completed tasks as well
+    
+    qs = Task.objects.filter(completed=False).order_by('project_id') \
+             .values_list('project_id', *TASK_FIELDS)
+    data = {}
+    for task in qs:
+        if not data.get(task[0]):
+            data[task[0]] = []
+        data[task[0]].append(task[1:])
+    return JsonResponse(data)
 
 
 @login_required
@@ -60,11 +78,11 @@ def api_project_time_list(request):
         (Q(start__lt=date_start) & Q(end__gt=date_end))   # spanned multiple days
     ).order_by('start')
 
-    json = []
+    json_data = []
     for projecttime in time_qs:
-        json.append(_projecttime_to_json(projecttime))
+        json_data.append(_projecttime_to_json(projecttime))
 
-    return JsonResponse(json)
+    return JsonResponse(json_data)
 
 
 @login_required
@@ -96,21 +114,6 @@ def api_project_time_move(request):
     })
 
 
-def form_errors_as_string(form):
-    if form.errors:
-        errors = []
-
-        if '__all__' in form.errors:
-            errors.append(', '.join(form.errors['__all__']))
-        for i in form.fields.keys():
-            if i in form.errors:
-                errors.append("%s: %s" % (form[i].label, ', '.join(form.errors[i])))
-
-        return '\n'.join(['- %s' % e for e in errors])
-    else:
-        return None
-
-
 def _api_project_time_form(form):
     if form.is_valid():
         projecttime = form.save()
@@ -121,18 +124,20 @@ def _api_project_time_form(form):
     else:
         return JsonResponse({
             'status': False,
-            'errors': form_errors_as_string(form),
+            'errors': form.errors
         })
 
 
 def _projecttime_to_json(projecttime):
+    task = projecttime.task
     return  {
         '_id': projecttime.id,
         "_description": projecttime.description,
-        '_project_id': projecttime.project_id,
+        '_task': [getattr(task, f) for f in TASK_FIELDS],
+        '_project_id': task.project_id,
         'start': projecttime.start.strftime("%Y-%m-%d %H:%M"),
         'end': projecttime.end.strftime("%Y-%m-%d %H:%M"),
-        'title': "{0}: {1}".format(projecttime.project, projecttime.description),
+        'title': "{0}: {1}".format(projecttime.project, projecttime.task.task),
         'allDay': False,
         #'url': '',
     }
@@ -162,7 +167,6 @@ def tasks(request, project_pk=None):
 
     TaskListFormSet = modelformset_factory(Task, fields=('completed',), extra=0)
 
-
     if request.POST and 'task_list-INITIAL_FORMS' in request.POST:
         task_list_formset = TaskListFormSet(request.POST, queryset=pending_task_list, prefix='task_list')
         if task_list_formset.is_valid():
@@ -179,7 +183,6 @@ def tasks(request, project_pk=None):
     else:
         task_form = AddTaskForm(prefix='addtask', initial=initial)
 
-
     data = {
         'project': project,
         'completed_task_list': completed_task_list,
@@ -190,16 +193,11 @@ def tasks(request, project_pk=None):
     return render_to_response('projectmanager/tasks.html', data)
 
 
-
-
-
 @login_required
 def create_invoice_for_project(request, project_id):
     project = get_object_or_404(Project, pk=project_id)
     invoice = project.create_invoice()
     return HttpResponseRedirect(reverse('projectmanager.views.invoice', invoice.id))
-
-
 
 
 def render_to_pdf(template_src, context_dict):
@@ -209,7 +207,8 @@ def render_to_pdf(template_src, context_dict):
     result = StringIO.StringIO()
     pdf = pisa.pisaDocument(StringIO.StringIO(html.encode("UTF-8")), result)
     if not pdf.err:
-        return http.HttpResponse(result.getvalue(), mimetype='application/pdf')
+        return http.HttpResponse(result.getvalue(), 
+                                 content_type='application/pdf')
     return http.HttpResponse('We had some errors<pre>%s</pre>' % cgi.escape(html))
 
 
@@ -226,19 +225,6 @@ def invoice(request, invoice_id, type='html'):
 
 
 @login_required
-def quote(request, quote_id, type='html'):
-    data = {
-        'quote': get_object_or_404(Quote, pk=quote_id),
-        'type': type,
-    }
-    if type == 'pdf':
-        return render_to_pdf('projectmanager/pdf/quote.html', data)
-    else:
-        return render_to_response('projectmanager/pdf/quote.html', data, context_instance=RequestContext(request))
-
-
-
-@login_required
 def projecttime_summary(request, project_pk):
     project = get_object_or_404(Project, pk=project_pk)
 
@@ -248,16 +234,17 @@ def projecttime_summary(request, project_pk):
     writer.writerow([
         'Date',
         'Time',
+        'Task',
         'Description',
     ])
 
-    for projecttime in project.projecttime_set.all().order_by('start'):
+    for projecttime in project.get_projecttime().order_by('start'):
         writer.writerow([
             projecttime.start.date(),
             "%sh" % projecttime.total_time(),
+            projecttime.task.task,
             unicode(projecttime.description),
         ])
-
 
     response['Content-Type'] = 'text/csv'
     response['Content-Disposition'] = 'attachment; filename="projecttime_summary_%s.csv"' % project.slug

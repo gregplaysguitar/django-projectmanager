@@ -1,0 +1,242 @@
+
+
+#header #projman-nav {
+    padding-left: 5px;
+    clear: both;
+}
+#header #projman-nav a {
+    display: block;
+    padding: 0.5em;
+    float: left;
+}
+#header #projman-nav a.current,
+#header #projman-nav a.current:hover {
+    background: none;
+}
+#header #projman-nav a.highlight {
+    color: red;
+    background: #ffa;
+}
+#header #projman-nav a.highlight:hover {
+    background: #ffa;
+}
+
+.project.list {
+    list-style: none;
+    padding: 0;
+}
+.project.list li {
+    margin: 1px 0;
+    list-style: none;
+    
+}
+.project.list li a {
+    padding: 2px 10px;
+    display: block;
+    color: #aaa;
+}
+.project.list li a:hover {
+    background: #fff;
+}
+.project.list li a.current,
+.project.list li a.current:hover {
+    font-weight: bold;
+    background: none;
+}
+.project.list li.has-pending {
+    font-weight: bold;
+}
+.project.list li.has-pending a {
+    color: #5B80B2;
+}
+.project.list li a.current:before {
+    content: "•";
+}
+
+
+.sidebar h3 {
+    margin: 10px;
+}
+
+a.current {
+    cursor: default;
+    color: inherit;
+    text-decoration: none;
+}
+
+#wrapper {
+	background: #eee;
+}
+
+
+
+
+/* TIME PAGE */
+
+div.time_list {
+	position: relative;
+	height: 800px;
+	border-top: 1px solid #AAA;
+	border-bottom: 1px solid #AAA;
+	background: #FFE;
+	overflow: hidden;
+}
+div.time_list .dividers {
+	width: 100%;
+	position: absolute;
+	height: 100%;
+	top: 0;
+	z-index: 0;
+}
+div.time_list .dividers div {
+	position: absolute;
+	font-size: 0.8em;
+	border-top: 1px dashed #AAA;
+	width: 100%;
+}
+div.time_list .dividers div:first-child {
+	border-top: none;
+}
+div.time_list .dividers div span {
+/*	position: absolute;
+	top: -0.5em;
+*/
+}
+div.time_list .dividers div.hour {
+
+}
+div.time_list .dividers div.alt {
+	background: none;
+}
+div.time_list ul {
+	position: relative;
+	height: 100%;
+	list-style: none;
+	padding: 0;
+	z-index: 1;
+	margin-left: 45px;
+	margin-right: 10px;
+	margin-top: 0;
+}
+div.time_list ul li {
+    list-style: none;
+	position: absolute;
+	width: 100%;
+	background: #FFA;
+	padding: 0;
+	margin: 0;
+	border-top: 1px solid #AAA;
+}
+div.time_list ul li.ghost {
+	opacity: 0.5;
+}
+
+ul.quick_links {
+	list-style: none;
+	margin: 0;
+	text-align: center;
+}
+ul.quick_links li {
+    list-style: none;
+	display: inline;
+	margin: 0 10px;
+	padding: 0;
+}
+
+
+
+
+
+div.sidebar {
+	background: #efefef;
+}
+
+
+
+.completed-tasks,
+.pending-tasks,
+.add-task {
+	margin-bottom: 1em;
+	border-bottom: 2px solid #aaa;
+	padding-bottom: 1em;
+}
+
+
+.pending-tasks ul {
+	list-style: none;
+	padding: 0;
+	margin: 1em 0;
+}
+.pending-tasks ul li {
+	list-style: none;
+	margin: 0.25em 0;
+	padding-left: 25px;
+	position: relative;
+}
+.pending-tasks ul li input {
+	position: absolute;
+	left: 0;
+	top: 0;
+}
+.completed-tasks ul li .meta,
+.pending-tasks ul li .meta {
+	font-size: 80%;
+	color: #aaa;
+}
+.pending-tasks ul li .comments {
+    font-size: 80%;
+    background: #ffe;
+    padding: 5px;
+    display: none;
+}
+.pending-tasks ul li:hover .comments {
+    display: block;
+}
+
+
+.tasks-leftcol {
+    float: left;
+    width: 70%;
+}
+.tasks-rightcol {
+    float: left;
+    width: 30%;
+    position: relative;
+}
+.tasks-rightcol .toggle {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    cursor: pointer;
+    color: #5B80B2;
+}
+
+
+.form ul {
+    list-style: none;
+    padding: 0;
+}
+.form ul li {
+    margin: 0.5em 0;
+    list-style: none;
+}
+.form label {
+    width: 70px;
+    display: block;
+    float: left;
+}
+.form input,
+.form select,
+.form textarea {
+    width: 300px;
+}
+.form input.submit {
+    margin-left: 270px;
+    width: 100px;
+}
+
+
+#task_set-group textarea {
+    width: 320px;
+    height: 50px;
+}
