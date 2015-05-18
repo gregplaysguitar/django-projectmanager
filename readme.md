@@ -1,3 +1,6 @@
+19/05/2015: I'm currently working on removing a bunch of cruft andpackaging
+this up properly.
+
 This project was built for my own personal use. I've open-sourced 
 it on the off chance that someone else might find it useful. Feel
 free to make suggestions or report issues.
