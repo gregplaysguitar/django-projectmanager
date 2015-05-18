@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 # coding: utf8
 
 from setuptools import setup, find_packages
@@ -18,7 +19,7 @@ setup(
     packages=find_packages(),
     zip_safe=False,
     platforms='any',
-    install_requires=['Django>=1.8',],
+    install_requires=['Django>=1.8', 'xhtml2pdf>=0.0.6'],
     classifiers=[
         'Development Status :: 5 - Production/Stable',
         'Environment :: Web Environment',
