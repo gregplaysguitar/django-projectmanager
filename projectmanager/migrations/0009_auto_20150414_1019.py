@@ -8,9 +8,6 @@ class Migration(migrations.Migration):
 
     dependencies = [
         ('projectmanager', '0008_auto_20150414_1003'),
-        
-        # make sure data migrated before removing tables
-        ('hosting', '0002_import'), 
     ]
 
     operations = [
