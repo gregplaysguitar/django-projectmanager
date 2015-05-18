@@ -1,26 +1,21 @@
 import json
-
-from django.db.models.query_utils import Q
-from django.views.decorators.http import require_POST
-from django.shortcuts import render_to_response, get_object_or_404
-from django.http import HttpResponseRedirect, HttpResponse, Http404
-from datetime import time as time_module, datetime, timedelta
-from django.contrib.auth.decorators import login_required
-from django.core.urlresolvers import reverse
-from django.forms.models import modelformset_factory, model_to_dict
-
-# pdf stuff
-from django import http
-from django.template.loader import get_template
-from django.template import Context, RequestContext
-import ho.pisa as pisa
-import cStringIO as StringIO
-import cgi
-
+from cStringIO import StringIO
 import csv
 
-from forms import ProjectTimeForm, AddTaskForm
-from models import Project, ProjectTime, Task, Invoice
+from django.db.models import Q
+from django.views.decorators.http import require_POST
+from django.shortcuts import render_to_response, get_object_or_404
+from django.http import HttpResponseRedirect, HttpResponse
+from datetime import datetime
+from django.contrib.auth.decorators import login_required
+from django.core.urlresolvers import reverse
+from django.forms.models import modelformset_factory
+from django.template.loader import get_template
+from django.template import Context, RequestContext
+from xhtml2pdf import pisa
+
+from .forms import ProjectTimeForm, AddTaskForm
+from .models import Project, ProjectTime, Task, Invoice
 
 
 class JsonResponse(HttpResponse):
@@ -32,9 +27,14 @@ class JsonResponse(HttpResponse):
 @login_required
 def index(request):
     data = {
-        'latest_time_list': ProjectTime.objects.for_user(request.user).order_by('-start'),
-        'project_list': Project.objects.for_user(request.user).filter(completed=False).order_by('-start'),
-        'completed_project_list': Project.objects.for_user(request.user).filter(completed=True).order_by('-start')
+        'latest_time_list': ProjectTime.objects.for_user(request.user) \
+                                               .order_by('-start'),
+        'project_list': Project.objects.for_user(request.user) \
+                                       .filter(completed=False) \
+                                       .order_by('-start'),
+        'completed_project_list': Project.objects.for_user(request.user) \
+                                                 .filter(completed=True) \
+                                                 .order_by('-start')
     }
     return render_to_response('projectmanager/index.html', data)
 
@@ -42,10 +42,12 @@ def index(request):
 @login_required
 def project_time_calendar(request):
     # get latest ProjectTime and use its project as the default
-    formData = {}
-    if ProjectTime.objects.count():
-        formData['project'] = ProjectTime.objects.all().order_by('-start')[0].project.id
-    time_form = ProjectTimeForm(initial=formData)
+    latest_time = ProjectTime.objects.all().order_by('-start').first()    
+    if latest_time:
+        initial = {'project': latest_time.project.id}
+    else:
+        initial = {}
+    time_form = ProjectTimeForm(initial=initial)
 
     return render_to_response('projectmanager/calendar.html', {
         'time_form': time_form,
@@ -204,12 +206,14 @@ def render_to_pdf(template_src, context_dict):
     template = get_template(template_src)
     context = Context(context_dict)
     html  = template.render(context)
-    result = StringIO.StringIO()
-    pdf = pisa.pisaDocument(StringIO.StringIO(html.encode("UTF-8")), result)
-    if not pdf.err:
-        return http.HttpResponse(result.getvalue(), 
-                                 content_type='application/pdf')
-    return http.HttpResponse('We had some errors<pre>%s</pre>' % cgi.escape(html))
+    result = StringIO()
+    status = pisa.CreatePDF(StringIO(html.encode("UTF-8")), dest=result)
+    
+    # pdf = pisa.pisaDocument(StringIO(html.encode("UTF-8")), result)
+    if status.err:
+        return HttpResponse(u"Error creating pdf")
+
+    return HttpResponse(result.getvalue(), content_type='application/pdf')
 
 
 @login_required
