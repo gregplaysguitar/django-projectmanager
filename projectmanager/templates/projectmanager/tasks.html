@@ -9,16 +9,11 @@ Tasks for {% firstof project "all projects" %}
 
 
 {% block content %}
-
-
-
-
 <div class="tasks-leftcol">
-
-	
 	<div class="pending-tasks">
 		<h3>Pending tasks for {% firstof project "all projects" %}</h3>
 		<form action="." method="post">
+		{% csrf_token %}
 		
 		{{ task_list_formset.management_form }}
 		
@@ -58,6 +53,7 @@ Tasks for {% firstof project "all projects" %}
 		<h3>Add a task</h3>
 		<ul>
 			<form method="post" action=".">
+				{% csrf_token %}
 			
 				{{ task_form.as_ul }}
 				<li>
@@ -104,12 +100,9 @@ Tasks for {% firstof project "all projects" %}
 		</ul>
 		{% endif %}
 	</div>
-
 </div>
 
-
 <div class="sidebar tasks-rightcol">
-
 	<h3>Filter by project</h3>
 	<ul class="project list">
 		<li><a href="{% url 'projectmanager.views.tasks' 'all' %}">All</a></li>
@@ -124,13 +117,7 @@ Tasks for {% firstof project "all projects" %}
 		</li>
 		{% endfor %}
 	</ul>
-
-
 </div>
-
-
-
-
 {% endblock %}
 
 
@@ -139,14 +126,14 @@ Tasks for {% firstof project "all projects" %}
 
 <script type="text/javascript">
 $(function() {
-    {% if project %}
+  {% if project %}
     $('#id_addtask-task').focus();
 	{% endif %}
 	$('.tasks-rightcol li.hidden').hide();
-	$('.tasks-rightcol').append($('<a>').text('show all').addClass('toggle').click(function() {
-	    $('.tasks-rightcol li.hidden').toggle();
-	}));
-	
+	$('.tasks-rightcol').append($('<a>').text('show all').addClass('toggle')
+	  .click(function() {
+		  $('.tasks-rightcol li.hidden').toggle();
+		}));
 });
 </script>
 {% endblock %}

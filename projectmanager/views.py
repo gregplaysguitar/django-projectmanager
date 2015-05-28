@@ -24,19 +24,6 @@ class JsonResponse(HttpResponse):
                                            content_type="application/json")
 
 
-@login_required
-def index(request):
-    data = {
-        'latest_time_list': ProjectTime.objects.for_user(request.user) \
-                                               .order_by('-start'),
-        'project_list': Project.objects.for_user(request.user) \
-                                       .filter(completed=False) \
-                                       .order_by('-start'),
-        'completed_project_list': Project.objects.for_user(request.user) \
-                                                 .filter(completed=True) \
-                                                 .order_by('-start')
-    }
-    return render_to_response('projectmanager/index.html', data)
 
 
 @login_required
@@ -48,10 +35,13 @@ def project_time_calendar(request):
     else:
         initial = {}
     time_form = ProjectTimeForm(initial=initial)
-
-    return render_to_response('projectmanager/calendar.html', {
-        'time_form': time_form,
-    })
+    
+    return render_to_response('projectmanager/calendar.html', 
+        RequestContext(request, {
+            'time_form': time_form,
+            'has_permission': True,
+            'user': request.user,
+        }))
 
 
 TASK_FIELDS = ('id', 'task', 'completed')
@@ -191,8 +181,11 @@ def tasks(request, project_pk=None):
         'project_list': project_list,
         'task_form': task_form,
         'task_list_formset': task_list_formset,
+        'has_permission': True,
+        'user': request.user,
     }
-    return render_to_response('projectmanager/tasks.html', data)
+    return render_to_response('projectmanager/tasks.html', 
+                              RequestContext(request, data))
 
 
 @login_required
