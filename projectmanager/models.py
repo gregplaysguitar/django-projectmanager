@@ -80,7 +80,7 @@ class Project(models.Model):
     hidden = models.BooleanField(db_index=True)
     billable = models.BooleanField(default=1, db_index=True)
     hourly_rate = models.DecimalField(max_digits=10, decimal_places=2, 
-                                      default=80)
+                                      default=pm_settings.HOURLY_RATE)
     creation_date = models.DateTimeField(auto_now_add=True)
     billing_type = models.CharField(max_length=5, choices=(('quote', 'Quote'), 
                                                            ('time', 'Time'),), 
@@ -328,10 +328,10 @@ class Invoice(models.Model):
         return sum(float(row.amount()) for row in self.invoicerow_set.all())
     
     def gst_amount(self):
-        return (float(self.subtotal()) * .15)
+        return (float(self.subtotal()) * pm_settings.SALES_TAX)
     
     def total(self):
-        return (float(self.subtotal()) * 1.15)
+        return (float(self.subtotal()) * (1 + pm_settings.SALES_TAX))
     
     @models.permalink
     def get_absolute_url(self):
