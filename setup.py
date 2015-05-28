@@ -17,6 +17,7 @@ setup(
     author_email='greg@gregbrown.co.nz',
     url='https://github.com/gregplaysguitar/django-projectmanager',
     packages=find_packages(),
+    include_package_data=True,
     zip_safe=False,
     platforms='any',
     install_requires=['Django>=1.8', 'xhtml2pdf>=0.0.6'],

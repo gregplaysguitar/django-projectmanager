@@ -1,4 +1,4 @@
 include license.md
 include readme.md
-recursive-include projectmanager/static *
-recursive-include projectmanager/templates *
+recursive-include projectmanager/static *.js *.css
+recursive-include projectmanager/templates *.html
