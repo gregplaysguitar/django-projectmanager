@@ -1,6 +1,7 @@
 import json
 from cStringIO import StringIO
 import csv
+from datetime import datetime, timedelta
 
 from django.db.models import Q
 from django.views.decorators.http import require_POST
@@ -44,10 +45,12 @@ def project_time_calendar(request):
 TASK_FIELDS = ('id', 'task', 'completed')
 @login_required
 def project_task_data(request):
-    # TODO retrieve recently completed tasks as well
-    
-    qs = Task.objects.filter(completed=False).order_by('project_id') \
+    # retrieve tasks that are incomplete or completed in the last day
+    cutoff = datetime.now() - timedelta(1)
+    f = Q(completed=False) | Q(completion_date__gt=cutoff)
+    qs = Task.objects.filter(f).order_by('project_id') \
              .values_list('project_id', *TASK_FIELDS)
+             
     data = {}
     for task in qs:
         if not data.get(task[0]):

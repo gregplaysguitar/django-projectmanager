@@ -36,7 +36,6 @@ function add_to_task_data(project_id, task) {
 			break;
 		}
 	}
-	console.log(index);
 	if (index !== null) {
 		task_data[project_id][index] = task;
 	}
@@ -80,18 +79,37 @@ function time_form_init(form) {
 		return optgroup;
 	};
 	
-	function update_tasks(reload, callback, completed_tasks) {
+	function update_tasks(reload, callback, additional_tasks) {
 		var project_id = project.val();
 		load_task_data(function(data) {
 			task.html('');
 			task.append('<option value="">[new task]</option>');
+			var completed = [],
+			    incomplete = [];
 			
-			if (data[project_id]) {
-				add_optgroup(task, 'In progress', data[project_id]);
-			}
-			if (completed_tasks) {
-				add_optgroup(task, 'Completed', completed_tasks).data('completed', true);
-			}
+			function append_tasks(task_list) {
+				for (var i = 0, list, in_list; i < task_list.length; i++) {
+					list = (task_list[i][2] ? completed : incomplete);
+					in_list = false
+					// only add the task if it's not already in the list
+					for (var j = 0; j < list.length; j++) {
+						if (list[j][0] == task_list[i][0]) {
+							in_list = true;
+						}
+					}
+					if (!in_list) {
+						list.push(task_list[i]);
+					}
+				}
+			};
+			
+			// add tasks from the current project and any additional ones required
+			append_tasks(data[project_id]);
+			additional_tasks && append_tasks(additional_tasks);
+			
+			// add in progress and completed groups to the select
+			incomplete.length && add_optgroup(task, 'In progress', incomplete);
+			completed.length && add_optgroup(task, 'Completed', completed);
 			
 			task.change();
 			callback && callback();
@@ -204,18 +222,12 @@ $(document).ready(function() {
 		$("#add_time, #add_time_overlay").fadeIn(300);
 		$('#add_time .delete').show().attr('href', $('#add_time .delete').attr('href').replace('/0/', '/' + event._id + '/'));
 		
-		if (event._task[2]) {
-			// need to add it to the task select because only incomplete are shown
-			var completed_tasks = [[event._task[0], event._task[1]]];
-		}
-		else {
-			var completed_tasks = null;
-		}
-		
+		// send the clicked task through in case it's already completed, and 
+		// therefore not in the global task data
 		add_form.update_tasks(false, function() {
 			$('#add_time #id_task').val(event._task[0]).change();
 			$('#add_time #id_completed').attr('checked', event._task[2]);
-		}, completed_tasks);
+		}, [event._task]);
 	};
 
 	function onTimeFormSubmit(event)
