@@ -4,11 +4,10 @@ import csv
 
 from django.db.models import Q
 from django.views.decorators.http import require_POST
-from django.shortcuts import render_to_response, get_object_or_404
-from django.http import HttpResponseRedirect, HttpResponse
+from django.shortcuts import render_to_response, get_object_or_404, redirect
+from django.http import HttpResponse
 from datetime import datetime
 from django.contrib.auth.decorators import login_required
-from django.core.urlresolvers import reverse
 from django.forms.models import modelformset_factory
 from django.template.loader import get_template
 from django.template import Context, RequestContext
@@ -22,8 +21,6 @@ class JsonResponse(HttpResponse):
     def __init__(self, data):
         super(JsonResponse, self).__init__(json.dumps(data), 
                                            content_type="application/json")
-
-
 
 
 @login_required
@@ -142,8 +139,7 @@ def tasks(request, project_pk=None):
     project_list = Project.objects.for_user(request.user).filter(completed=False)
 
     if not project_pk and 'tasks_latest_project_pk' in request.session:
-        #print reverse('view-tasks', int(request.session['tasks_latest_project_pk']))
-        return HttpResponseRedirect("/tasks/%s/" % request.session['tasks_latest_project_pk'])
+        return redirect(tasks, request.session['tasks_latest_project_pk'])
     elif project_pk == 'all':
         project_pk = None
 
@@ -163,7 +159,7 @@ def tasks(request, project_pk=None):
         task_list_formset = TaskListFormSet(request.POST, queryset=pending_task_list, prefix='task_list')
         if task_list_formset.is_valid():
             task_list_formset.save()
-            return HttpResponseRedirect(request.path_info)
+            return redirect(request.path_info)
     else:
         task_list_formset = TaskListFormSet(queryset=pending_task_list, prefix='task_list')
 
@@ -171,7 +167,7 @@ def tasks(request, project_pk=None):
         task_form = AddTaskForm(request.POST, prefix='addtask')
         if task_form.is_valid():
             task = task_form.save()
-            return HttpResponseRedirect(request.path_info)
+            return redirect(request.path_info)
     else:
         task_form = AddTaskForm(prefix='addtask', initial=initial)
 
@@ -192,7 +188,7 @@ def tasks(request, project_pk=None):
 def create_invoice_for_project(request, project_id):
     project = get_object_or_404(Project, pk=project_id)
     invoice = project.create_invoice()
-    return HttpResponseRedirect(reverse('projectmanager.views.invoice', invoice.id))
+    return redirect('projectmanager.views.invoice', invoice.id)
 
 
 def render_to_pdf(template_src, context_dict):
