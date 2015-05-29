@@ -101,8 +101,8 @@ class Project(models.Model):
     def get_projecttime(self):
         return ProjectTime.objects.filter(task__project=self)
     
-    # def pending_task_count(self):
-    #     return self.task_set.filter(completed=False).count()
+    def pending_tasks(self):
+        return self.task_set.filter(completed=False)
     
     @cached_method()
     def total_hours(self):

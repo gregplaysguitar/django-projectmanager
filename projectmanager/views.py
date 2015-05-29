@@ -137,8 +137,10 @@ def _projecttime_to_json(projecttime):
 
 @login_required
 def tasks(request, project_pk=None):
-    completed_task_list = Task.objects.for_user(request.user).filter(completed=True).order_by('-completion_date')
-    pending_task_list = Task.objects.for_user(request.user).filter(completed=False)
+    task_qs = Task.objects.for_user(request.user)
+    
+    completed_tasks = task_qs.filter(completed=True).order_by('-completion_date')
+    pending_tasks = task_qs.filter(completed=False).order_by('creation_date')
     project_list = Project.objects.for_user(request.user).filter(completed=False)
 
     if not project_pk and 'tasks_latest_project_pk' in request.session:
@@ -148,8 +150,8 @@ def tasks(request, project_pk=None):
 
     if project_pk:
         project = get_object_or_404(Project, pk=project_pk)
-        completed_task_list = completed_task_list.filter(project=project)
-        pending_task_list = pending_task_list.filter(project=project)
+        completed_tasks = completed_tasks.filter(project=project)
+        pending_tasks = pending_tasks.filter(project=project)
         initial = {'project': project.pk}
         request.session['tasks_latest_project_pk'] = project.pk
     else:
@@ -159,12 +161,12 @@ def tasks(request, project_pk=None):
     TaskListFormSet = modelformset_factory(Task, fields=('completed',), extra=0)
 
     if request.POST and 'task_list-INITIAL_FORMS' in request.POST:
-        task_list_formset = TaskListFormSet(request.POST, queryset=pending_task_list, prefix='task_list')
+        task_list_formset = TaskListFormSet(request.POST, queryset=pending_tasks, prefix='task_list')
         if task_list_formset.is_valid():
             task_list_formset.save()
             return redirect(request.path_info)
     else:
-        task_list_formset = TaskListFormSet(queryset=pending_task_list, prefix='task_list')
+        task_list_formset = TaskListFormSet(queryset=pending_tasks, prefix='task_list')
 
     if request.POST and 'addtask-task' in request.POST:
         task_form = AddTaskForm(request.POST, prefix='addtask')
@@ -176,7 +178,7 @@ def tasks(request, project_pk=None):
 
     data = {
         'project': project,
-        'completed_task_list': completed_task_list,
+        'completed_tasks': completed_tasks,
         'project_list': project_list,
         'task_form': task_form,
         'task_list_formset': task_list_formset,

@@ -35,24 +35,14 @@
     display: block;
     color: #aaa;
 }
-.project.list li a:hover {
-    background: #fff;
-}
+.project.list li a:hover,
 .project.list li a.current,
 .project.list li a.current:hover {
-    font-weight: bold;
-    background: none;
-}
-.project.list li.has-pending {
-    font-weight: bold;
-}
-.project.list li.has-pending a {
     color: #5B80B2;
 }
-.project.list li a.current:before {
-    content: "•";
+.project.list li.hidden {
+    opacity: 0.5;
 }
-
 
 .sidebar h3 {
     margin: 10px;
