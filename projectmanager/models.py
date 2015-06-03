@@ -101,8 +101,8 @@ class Project(models.Model):
     def get_projecttime(self):
         return ProjectTime.objects.filter(task__project=self)
     
-    # def pending_task_count(self):
-    #     return self.task_set.filter(completed=False).count()
+    def pending_tasks(self):
+        return self.task_set.filter(completed=False)
     
     @cached_method()
     def total_hours(self):
@@ -115,7 +115,7 @@ class Project(models.Model):
     
     @cached_method()
     def invoiced_hours(self):
-        tasks = self.task_set.filter(completed=True)
+        tasks = self.task_set.all()
         return sum(t.invoiced_hours() for t in tasks)
     
     @cached_method()

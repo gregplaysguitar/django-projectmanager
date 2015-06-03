@@ -68,7 +68,7 @@ Tasks for {% firstof project "all projects" %}
 		{% if project %}
 		<h3>Completed tasks for {{ project }}</h3>
 		<ul>
-			{% for task in completed_task_list %}
+			{% for task in completed_tasks %}
 			<li title="{{ task.task }}">
 				{{ task.task|truncatewords:"15" }}
 				<span class="meta">
@@ -86,7 +86,7 @@ Tasks for {% firstof project "all projects" %}
 		{% else %}
 		<h3>Last 10 completed tasks</h3>
 		<ul>
-			{% for task in completed_task_list|slice:":10" %}
+			{% for task in completed_tasks|slice:":10" %}
 			<li>
 				{{ task.task|truncatewords:"15" }}
 				<span class="meta">
@@ -106,15 +106,18 @@ Tasks for {% firstof project "all projects" %}
 	<h3>Filter by project</h3>
 	<ul class="project list">
 		<li><a href="{% url 'projectmanager.views.tasks' 'all' %}">All</a></li>
-		{% for project in project_list %}
-		<li class="{% if project.pending_task_count %}has-pending{% endif %} {% if project.hidden %} hidden{% endif %}">
-			<a href="{% url 'projectmanager.views.tasks' project.pk %}">
-				{{ project }}
-				{% if project.pending_task_count %}
-				({{ project.pending_task_count }})
-				{% endif %}
-			</a>
-		</li>
+		{% for proj in project_list %}
+			{% with pending=proj.pending_tasks.count %}
+			<li class="{% if proj.hidden %} hidden{% endif %}">
+				<a href="{% url 'projectmanager.views.tasks' proj.pk %}"
+				   class="{% if proj == project %}current{% endif %}">
+					{{ proj }}
+					{% if pending %}
+						({{ pending }})
+					{% endif %}
+				</a>
+			</li>
+			{% endwith %}
 		{% endfor %}
 	</ul>
 </div>

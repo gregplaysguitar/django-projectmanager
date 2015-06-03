@@ -1,14 +1,14 @@
 import json
 from cStringIO import StringIO
 import csv
+from datetime import datetime, timedelta
 
 from django.db.models import Q
 from django.views.decorators.http import require_POST
-from django.shortcuts import render_to_response, get_object_or_404
-from django.http import HttpResponseRedirect, HttpResponse
+from django.shortcuts import render_to_response, get_object_or_404, redirect
+from django.http import HttpResponse
 from datetime import datetime
 from django.contrib.auth.decorators import login_required
-from django.core.urlresolvers import reverse
 from django.forms.models import modelformset_factory
 from django.template.loader import get_template
 from django.template import Context, RequestContext
@@ -22,8 +22,6 @@ class JsonResponse(HttpResponse):
     def __init__(self, data):
         super(JsonResponse, self).__init__(json.dumps(data), 
                                            content_type="application/json")
-
-
 
 
 @login_required
@@ -47,10 +45,12 @@ def project_time_calendar(request):
 TASK_FIELDS = ('id', 'task', 'completed')
 @login_required
 def project_task_data(request):
-    # TODO retrieve recently completed tasks as well
-    
-    qs = Task.objects.filter(completed=False).order_by('project_id') \
+    # retrieve tasks that are incomplete or completed in the last day
+    cutoff = datetime.now() - timedelta(1)
+    f = Q(completed=False) | Q(completion_date__gt=cutoff)
+    qs = Task.objects.filter(f).order_by('project_id') \
              .values_list('project_id', *TASK_FIELDS)
+             
     data = {}
     for task in qs:
         if not data.get(task[0]):
@@ -137,20 +137,21 @@ def _projecttime_to_json(projecttime):
 
 @login_required
 def tasks(request, project_pk=None):
-    completed_task_list = Task.objects.for_user(request.user).filter(completed=True).order_by('-completion_date')
-    pending_task_list = Task.objects.for_user(request.user).filter(completed=False)
+    task_qs = Task.objects.for_user(request.user)
+    
+    completed_tasks = task_qs.filter(completed=True).order_by('-completion_date')
+    pending_tasks = task_qs.filter(completed=False).order_by('creation_date')
     project_list = Project.objects.for_user(request.user).filter(completed=False)
 
     if not project_pk and 'tasks_latest_project_pk' in request.session:
-        #print reverse('view-tasks', int(request.session['tasks_latest_project_pk']))
-        return HttpResponseRedirect("/tasks/%s/" % request.session['tasks_latest_project_pk'])
+        return redirect(tasks, request.session['tasks_latest_project_pk'])
     elif project_pk == 'all':
         project_pk = None
 
     if project_pk:
         project = get_object_or_404(Project, pk=project_pk)
-        completed_task_list = completed_task_list.filter(project=project)
-        pending_task_list = pending_task_list.filter(project=project)
+        completed_tasks = completed_tasks.filter(project=project)
+        pending_tasks = pending_tasks.filter(project=project)
         initial = {'project': project.pk}
         request.session['tasks_latest_project_pk'] = project.pk
     else:
@@ -160,24 +161,24 @@ def tasks(request, project_pk=None):
     TaskListFormSet = modelformset_factory(Task, fields=('completed',), extra=0)
 
     if request.POST and 'task_list-INITIAL_FORMS' in request.POST:
-        task_list_formset = TaskListFormSet(request.POST, queryset=pending_task_list, prefix='task_list')
+        task_list_formset = TaskListFormSet(request.POST, queryset=pending_tasks, prefix='task_list')
         if task_list_formset.is_valid():
             task_list_formset.save()
-            return HttpResponseRedirect(request.path_info)
+            return redirect(request.path_info)
     else:
-        task_list_formset = TaskListFormSet(queryset=pending_task_list, prefix='task_list')
+        task_list_formset = TaskListFormSet(queryset=pending_tasks, prefix='task_list')
 
     if request.POST and 'addtask-task' in request.POST:
         task_form = AddTaskForm(request.POST, prefix='addtask')
         if task_form.is_valid():
             task = task_form.save()
-            return HttpResponseRedirect(request.path_info)
+            return redirect(request.path_info)
     else:
         task_form = AddTaskForm(prefix='addtask', initial=initial)
 
     data = {
         'project': project,
-        'completed_task_list': completed_task_list,
+        'completed_tasks': completed_tasks,
         'project_list': project_list,
         'task_form': task_form,
         'task_list_formset': task_list_formset,
@@ -192,7 +193,7 @@ def tasks(request, project_pk=None):
 def create_invoice_for_project(request, project_id):
     project = get_object_or_404(Project, pk=project_id)
     invoice = project.create_invoice()
-    return HttpResponseRedirect(reverse('projectmanager.views.invoice', invoice.id))
+    return redirect('projectmanager.views.invoice', invoice.id)
 
 
 def render_to_pdf(template_src, context_dict):
