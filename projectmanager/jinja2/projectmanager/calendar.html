@@ -1,12 +1,11 @@
-{% extends "admin/base_site.html" %}
-{% load static %}
+{% extends "base.html" %}
 
 {% block title %}
     Calendar
-    {{ block.super }}
+    {{ super() }}
 {% endblock %}
 
-{% block header %}{{ current_day|date:"l, j F Y" }}{% endblock %}
+{% block header %}{{ current_day|date("l, j F Y") }}{% endblock %}
 
 
 
@@ -17,7 +16,7 @@
 
 <div id="add_time_overlay"></div>
 <form action="{{ request.get_full_path }}" method="post" class="addtime">
-{% csrf_token %}
+{{ csrf_token }}
 <div><input type="hidden" id="id_id" name="id" value="0" /></div>
 <fieldset class="form" id="add_time">
 	<table border="0" cellpadding="0" cellspacing="0">
@@ -27,25 +26,25 @@
 			<td><input type="submit" value="Submit" id="add_time_submit"><input type="button" value="Cancel" id="add_time_cancel" /></td>
 		</tr>
 	</table>
-<a href="{% url 'admin:projectmanager_projecttime_delete' 0 %}" class="delete">Delete entry</a>
+<a href="{{ url('admin:projectmanager_projecttime_delete', 0) }}" class="delete">Delete entry</a>
 </fieldset>
 </form>
 
-<link rel="stylesheet" type="text/css" href="{% static 'projectmanager/css/fullcalendar.css' %}">
-<link rel="stylesheet" type="text/css" href="{% static 'projectmanager/css/fullcalendar.print.css' %}" media="print" />
+<link rel="stylesheet" type="text/css" href="{{ STATIC_URL }}projectmanager/css/fullcalendar.css">
+<link rel="stylesheet" type="text/css" href="{{ STATIC_URL }}projectmanager/css/fullcalendar.print.css" media="print" />
 <script type="text/javascript">
 var PROJECTMANAGER_URLS = {
-  TASK_DATA: '{% url 'projectmanager.views.project_task_data' %}',
-  PROJECT_TIME_LIST: '{% url 'projectmanager.views.api_project_time_list' %}',
-  PROJECT_TIME_MOVE: '{% url 'projectmanager.views.api_project_time_move' %}',
-  PROJECT_TIME_ADD: '{% url 'projectmanager.views.api_project_time_add' %}',
-  PROJECT_TIME_EDIT: '{% url 'projectmanager.views.api_project_time_edit' %}'
+  TASK_DATA: '{{ url('projectmanager.views.project_task_data') }}',
+  PROJECT_TIME_LIST: '{{ url('projectmanager.views.api_project_time_list') }}',
+  PROJECT_TIME_MOVE: '{{ url('projectmanager.views.api_project_time_move') }}',
+  PROJECT_TIME_ADD: '{{ url('projectmanager.views.api_project_time_add') }}',
+  PROJECT_TIME_EDIT: '{{ url('projectmanager.views.api_project_time_edit') }}'
 };
 </script>
-<script type="text/javascript" src="{% static 'projectmanager/js/lib/jquery-1.5.2.min.js' %}"></script>
-<script type="text/javascript" src="{% static 'projectmanager/js/lib/jquery-ui-1.8.11.custom.min.js' %}"></script>
-<script type="text/javascript" src="{% static 'projectmanager/js/lib/fullcalendar.js' %}"></script>
-<script type="text/javascript" src="{% static 'projectmanager/js/calendar.js' %}"></script>
+<script type="text/javascript" src="{{ STATIC_URL }}projectmanager/js/lib/jquery-1.5.2.min.js"></script>
+<script type="text/javascript" src="{{ STATIC_URL }}projectmanager/js/lib/jquery-ui-1.8.11.custom.min.js"></script>
+<script type="text/javascript" src="{{ STATIC_URL }}projectmanager/js/lib/fullcalendar.js"></script>
+<script type="text/javascript" src="{{ STATIC_URL }}projectmanager/js/calendar.js"></script>
 
 <style type="text/css">
 

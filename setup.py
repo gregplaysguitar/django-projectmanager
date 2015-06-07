@@ -20,7 +20,7 @@ setup(
     include_package_data=True,
     zip_safe=False,
     platforms='any',
-    install_requires=['Django>=1.8', 'xhtml2pdf>=0.0.6'],
+    install_requires=['Django>=1.8', 'xhtml2pdf>=0.0.6', 'Jinja2>=2.7.3'],
     classifiers=[
         'Development Status :: 5 - Production/Stable',
         'Environment :: Web Environment',

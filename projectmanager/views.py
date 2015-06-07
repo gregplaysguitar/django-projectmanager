@@ -5,7 +5,7 @@ from datetime import datetime, timedelta
 
 from django.db.models import Q
 from django.views.decorators.http import require_POST
-from django.shortcuts import render_to_response, get_object_or_404, redirect
+from django.shortcuts import get_object_or_404, redirect
 from django.http import HttpResponse
 from datetime import datetime
 from django.contrib.auth.decorators import login_required
@@ -16,6 +16,15 @@ from xhtml2pdf import pisa
 
 from .forms import ProjectTimeForm, AddTaskForm
 from .models import Project, ProjectTime, Task, Invoice
+
+
+def render_to_response(template_name, context, request):
+    # uses get_template and Template.render so we can pass the request,
+    # and the template engine takes care of adding it and csrf
+    # stuff to the context
+    tpl = get_template(template_name)
+    content = tpl.render(context, request=request)
+    return HttpResponse(content)
 
 
 class JsonResponse(HttpResponse):
@@ -34,12 +43,11 @@ def project_time_calendar(request):
         initial = {}
     time_form = ProjectTimeForm(initial=initial)
     
-    return render_to_response('projectmanager/calendar.html', 
-        RequestContext(request, {
-            'time_form': time_form,
-            'has_permission': True,
-            'user': request.user,
-        }))
+    return render_to_response('projectmanager/calendar.html', {
+        'time_form': time_form,
+        'has_permission': True,
+        'user': request.user,
+    }, request)
 
 
 TASK_FIELDS = ('id', 'task', 'completed')
@@ -185,8 +193,7 @@ def tasks(request, project_pk=None):
         'has_permission': True,
         'user': request.user,
     }
-    return render_to_response('projectmanager/tasks.html', 
-                              RequestContext(request, data))
+    return render_to_response('projectmanager/tasks.html', data, request)
 
 
 @login_required
@@ -211,15 +218,16 @@ def render_to_pdf(template_src, context_dict):
 
 
 @login_required
-def invoice(request, invoice_id, type='html'):
+def invoice(request, invoice_id, output='html'):
     data = {
         'invoice': get_object_or_404(Invoice, pk=invoice_id),
-        'type': type,
+        'type': output,
     }
-    if type == 'pdf':
-        return render_to_pdf('projectmanager/pdf/invoice.html', data)
+    template_name = 'projectmanager/pdf/invoice.html'
+    if output == 'pdf':
+        return render_to_pdf(template_name, data)
     else:
-        return render_to_response('projectmanager/pdf/invoice.html', data, context_instance=RequestContext(request))
+        return render_to_response(template_name, data, request)
 
 
 @login_required
