@@ -4,15 +4,15 @@ from . import views
 
 urlpatterns = [
     url(r'^calendar/$', views.project_time_calendar),
-    url(r'^api/tasks.json$', views.project_task_data),
-    url(r'^api/time/list/', views.api_project_time_list),
-    url(r'^api/time/add/', views.api_project_time_add),
-    url(r'^api/time/edit/', views.api_project_time_edit),
-    url(r'^api/time/move/', views.api_project_time_move),
+    url(r'^calendar/_api/tasks.json$', views.project_task_data),
+    url(r'^calendar/_api/time/list/', views.api_project_time_list),
+    url(r'^calendar/_api/time/add/', views.api_project_time_add),
+    url(r'^calendar/_api/time/edit/', views.api_project_time_edit),
+    url(r'^calendar/_api/time/move/', views.api_project_time_move),
 
-    url(r'^tasks/$', views.tasks),
-    url(r'^tasks/(\d+)/$', views.tasks),
-    url(r'^tasks/(all)/$', views.tasks),
+    url(r'^tasks_old/$', views.tasks),
+    url(r'^tasks_old/(\d+)/$', views.tasks),
+    url(r'^tasks_old/(all)/$', views.tasks),
 
     url(r'^invoice/(\d+)/$', views.invoice),
     url(r'^invoice/(\d+)/.+\.(pdf)$', views.invoice),
@@ -20,5 +20,15 @@ urlpatterns = [
     url(r'^itemise/(\d+)/$', views.projecttime_summary),
 
     url(r'^create_invoice_for_project/(\d+)/$', views.create_invoice_for_project),
-
+    
+    # list/detail views
+    url(r'^projects/$', views.project_list),
+    url(r'^projects/$', views.project_detail),
+    url(r'^tasks/$', views.task_list),
+    url(r'^tasks/$', views.task_detail),
+    url(r'^invoices/$', views.invoice_list),
+    url(r'^invoices/$', views.invoice_detail),
+    url(r'^entries/$', views.projecttime_detail),
+    url(r'^entries/$', views.projecttime_detail),
+        
 ]

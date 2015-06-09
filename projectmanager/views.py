@@ -247,3 +247,65 @@ def projecttime_summary(request, project_pk):
     response['Content-Type'] = 'text/csv'
     response['Content-Disposition'] = 'attachment; filename="projecttime_summary_%s.csv"' % project.slug
     return response
+
+
+# LIST/DETAIL VIEWS
+
+def list_view(view):
+    template = 'projectmanager/%s.html' % view.__name__
+    def wrapped(request):
+        return render_to_response(template, view(request), request)
+    wrapped.__name__ = view.__name__
+    return login_required(wrapped)
+
+
+def detail_view(model_cls):
+    def inner(view):
+        template = 'projectmanager/%s.html' % view.__name__
+        def wrapped(request, pk):
+            # obj = 
+            return render_to_response(template, view(request), request)
+        wrapped.__name__ = view.__name__
+        return login_required(wrapped)
+    
+    return inner
+
+
+@list_view
+def project_list(request):
+    return {}
+
+
+@detail_view(Project)
+def project_detail(request):
+    return {}
+
+
+@list_view
+def invoice_list(request):
+    return {}
+
+
+@detail_view(Project)
+def invoice_detail(request):
+    return {}
+
+
+@list_view
+def task_list(request):
+    return {}
+
+
+@detail_view(Project)
+def task_detail(request):
+    return {}
+
+
+@list_view
+def projecttime_list(request):
+    return {}
+
+
+@detail_view(Project)
+def projecttime_detail(request):
+    return {}
