@@ -27,7 +27,7 @@ INSTALLATION & SETUP
    admin page.
 
 4. For invoice generation, you'll need to create your own 
-   `projectmanager/pdf/invoice.html` template, overriding 
+   `projectmanager/pdf/invoice.html` template.
 
 5. Add `PROJECTMANAGER_HOURLY_RATE` and `PROJECTMANAGER_SALES_TAX` to your settings to
    customise.

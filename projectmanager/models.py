@@ -14,13 +14,6 @@ from django.db.models import Q, Sum
 from . import settings as pm_settings
 
 
-def smart_truncate(content, length=100, suffix='...'):
-    if len(content) <= length:
-        return content
-    else:
-        return content[:length].rsplit(' ', 1)[0] + suffix
-
-
 def cache_key(obj, func_name, *args, **kwargs):
     key = [settings.CACHE_MIDDLEWARE_KEY_PREFIX,
            func_name,
@@ -55,9 +48,20 @@ def default_manager_from_qs(qs_cls, **kwargs):
     return _Manager
 
 
+class Organisation(models.Model):
+    name = models.CharField(max_length=200)
+    owner = models.ForeignKey(User)
+    
+    def __unicode__(self):
+        return self.name
+
+
 class Client(models.Model):
+    organisation = models.ForeignKey(Organisation)
     name = models.CharField(max_length=200)
     email = models.EmailField(blank=True, default='')
+    # invoice_detail = models.TextField(blank=True, default='', 
+    #                                   help_text=u"E.g. client address")
     
     def __unicode__(self):
         return self.name
@@ -69,16 +73,12 @@ class ProjectQuerySet(models.QuerySet):
 
 
 class Project(models.Model):
-    owner = models.ForeignKey(User, related_name='project_ownership_set')
-    users = models.ManyToManyField(User, related_name='project_membership_set', 
-                                   blank=True)
+    organisation = models.ForeignKey(Organisation)
     client = models.ForeignKey(Client, blank=True, null=True)
     name = models.CharField(max_length=200)
     slug = models.CharField(max_length=60, unique=True)
     description = models.TextField(blank=True)
-    completed = models.BooleanField(db_index=True)
-    hidden = models.BooleanField(db_index=True)
-    billable = models.BooleanField(default=1, db_index=True)
+    archived = models.BooleanField(db_index=True)
     hourly_rate = models.DecimalField(max_digits=10, decimal_places=2, 
                                       default=pm_settings.HOURLY_RATE)
     creation_date = models.DateTimeField(auto_now_add=True)
@@ -127,50 +127,6 @@ class Project(models.Model):
         else:
             return projecttime.start.date()
     latest_time.admin_order_field = 'task__projecttime__start'
-    
-    # @cached_method()
-    # def total_estimated_hours(self, completed=False):
-    #     tasks = self.task_set.all()
-    #     if completed:
-    #         tasks = tasks.filter(completed=True)
-    #     return tasks.aggregate(Sum('estimated_hours'))['estimated_hours__sum'] or ''
-    # 
-    # total_estimated_hours.short_description = 'Est. hours'
-    # 
-    # @cached_method()
-    # def total_expenses(self):
-    #     return float(sum(item.amount for item in ProjectExpense.objects.filter(project=self.id)))
-    # 
-    # @cached_method() 
-    # def time_invoiced(self):
-    #     return float(sum(item.quantity for item in InvoiceRow.objects.filter(project=self) if item.is_time))
-    # time_invoiced.short_description = 'Hours'
-    # 
-    # @cached_method()
-    # def total_invoiced(self):
-    #     return float(sum(item.amount() for item in InvoiceRow.objects.filter(project=self)))
-    # total_invoiced.short_description = 'Invoiced'
-    # 
-    # @cached_method()
-    # def total_cost(self):
-    #     if self.billing_type == 'quote':
-    #         return self.total_expenses() + float(self.total_estimated_hours(True) or 0) * float(self.hourly_rate)
-    #     else:
-    #         return self.total_expenses() + self.total_time() * float(self.hourly_rate)
-    # 
-    # @cached_method()
-    # def total_to_invoice(self):
-    #     return max(0, self.total_cost() - self.total_invoiced())
-    # total_to_invoice.short_description = 'To invoice'
-    # 
-    # @cached_method()
-    # def approx_hours_to_invoice(self):
-    #     if self.hourly_rate:
-    #         return str(round(int(self.total_to_invoice() * 4) / self.hourly_rate) / 4)
-    #     else:
-    #         return ''
-    # approx_hours_to_invoice.short_description = 'Hours'
-    
     
     @models.permalink
     def projecttime_summary_url(self):
@@ -264,9 +220,6 @@ class ProjectTime(models.Model):
     def project(self):
         return self.task.project
     
-    def description_truncated(self):
-        return smart_truncate(self.description, 100)
-    
     def __unicode__(self):
         return "%s: %s (%s)" % (self.project.name, self.description, unicode(self.start))
     
@@ -293,14 +246,12 @@ class ProjectExpense(models.Model):
     
     objects = ForProjectUserManager()
     
-    def description_truncated(self):
-        return smart_truncate(self.description, 30)
-    
     def __unicode__(self):
         return "%s: %s (%s)" % (self.project.name, self.description, self.amount)
 
 
 class Invoice(models.Model):
+    organisation = models.ForeignKey(Organisation)
     creation_date = models.DateTimeField(auto_now_add=True)
     client = models.CharField(max_length=255)
     email = models.CharField(max_length=255, blank=True)
@@ -376,10 +327,6 @@ class InvoiceRow(models.Model):
     def __unicode__(self):
         created = self.invoice.creation_date.strftime('%d/%m/%Y')
         return "%s on %s (%s)" % (self.amount(), self.task.task, created)
-        
-    # @property
-    # def is_time(self):
-    #     return (self.price == self.project.hourly_rate)
-
+    
     def invoice_date(self):
-        return datetime.date(self.invoice.creation_date.year, self.invoice.creation_date.month, self.invoice.creation_date.day)
+        return self.invoice.creation_date.date()

@@ -3,8 +3,6 @@ from django.db import models
 from django.utils.safestring import mark_safe
 from django.core.urlresolvers import reverse
 
-from admin_restricted import RestrictedByUsers
-
 from projectmanager.models import *
 
 
@@ -21,10 +19,7 @@ class TaskInline(admin.TabularInline):
 #   extra = 1
 
 
-class ProjectAdmin(RestrictedByUsers):
-    user_field = 'owner'
-    is_many_field = False
-    
+class ProjectAdmin(admin.ModelAdmin):
     def queryset(self, request):
         qs = super(ProjectAdmin, self).queryset(request)
         return qs.annotate(latest_time=models.Max('projecttime__start'))
@@ -33,27 +28,16 @@ class ProjectAdmin(RestrictedByUsers):
         obj.owner = req.user
         return super(ProjectAdmin, self).save_model(req, obj, *args, **kwargs)
 
-    def make_completed(self, request, queryset):
-        queryset.update(completed=True)
-    
-    def make_hidden(self, request, queryset):
-        queryset.update(hidden=True)
-    
-    # list_display = ('name', 'client', 'total_estimated_hours', 'total_time',
-    #                 'latest_time', 'billing_type', 'total_invoiced',
-    #                 'time_invoiced', 'unbilled_time', 'total_to_invoice',
-    #                 'approx_hours_to_invoice', 'completed', 'links', )
     list_display = ('client', 'name', 'total_hours', 'invoiceable_hours', 
-                    'invoiced_hours', 'latest_time', 'to_invoice', 'completed',
-                    'links', )
+                    'invoiced_hours', 'latest_time', 'to_invoice', 'links', )
     list_display_links = ('client', 'name')
-    list_filter = ('completed', 'creation_date', 'billable', 'hidden', 'client')
+    list_filter = ('archived', 'creation_date', 'client', )
     search_fields = ('name', 'client__name', 'slug', 'description')
     prepopulated_fields = {
         'slug': ('client', 'name',)
     }
     inlines = [ProjectExpenseInline, TaskInline, ]
-    actions = ['create_invoice_for_selected', 'make_completed', 'make_hidden']
+    actions = ['create_invoice_for_selected', ]
     exclude = ('owner', )
     
     def to_invoice(self, obj):
@@ -78,10 +62,7 @@ class ProjectAdmin(RestrictedByUsers):
 admin.site.register(Project, ProjectAdmin)
 
 
-class ProjectTimeAdmin(RestrictedByUsers):
-    user_field = 'project__owner'
-    is_many_field = False
-    
+class ProjectTimeAdmin(admin.ModelAdmin):
     list_display = ('project', 'description', 'start', 'end', 'total_time')
     list_filter = ('start', 'task__project', )
     search_fields = ('description',)
@@ -96,10 +77,6 @@ class InvoiceRowInline(admin.TabularInline):
     extra = 2
     raw_id_fields = ('task',)
 
-# class InvoiceAdmin(RestrictedByUsers):
-#     user_field = 'project__owner'
-#     is_many_field = False
-    
 class InvoiceAdmin(admin.ModelAdmin):
     list_display = ('client', 'description', 'creation_date_display', 'subtotal', 'paid', 'invoice')
     list_filter = (# 'invoicerow__task__project',
@@ -132,9 +109,7 @@ class InvoiceAdmin(admin.ModelAdmin):
 admin.site.register(Invoice, InvoiceAdmin)
 
 
-class TaskAdmin(RestrictedByUsers):
-    user_field = 'project__owner'
-    is_many_field = False
+class TaskAdmin(admin.ModelAdmin):
     list_filter = ('completed', 'creation_date', )
     list_display = ('project', 'task', 'total_hours', 'invoiceable_hours',
                     'invoiced_hours', 'get_completed', )
@@ -147,3 +122,10 @@ class TaskAdmin(RestrictedByUsers):
     get_completed.short_description = 'Completed'
 
 admin.site.register(Task, TaskAdmin)
+
+
+class OrganisationAdmin(admin.ModelAdmin):
+    list_display = ('name', 'owner', )
+    raw_id_fields = ('owner',)
+
+admin.site.register(Organisation, OrganisationAdmin)

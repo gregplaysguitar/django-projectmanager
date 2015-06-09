@@ -16,15 +16,7 @@ from xhtml2pdf import pisa
 
 from .forms import ProjectTimeForm, AddTaskForm
 from .models import Project, ProjectTime, Task, Invoice
-
-
-def render_to_response(template_name, context, request):
-    # uses get_template and Template.render so we can pass the request,
-    # and the template engine takes care of adding it and csrf
-    # stuff to the context
-    tpl = get_template(template_name)
-    content = tpl.render(context, request=request)
-    return HttpResponse(content)
+from .util import render_to_response
 
 
 class JsonResponse(HttpResponse):
@@ -149,7 +141,7 @@ def tasks(request, project_pk=None):
     
     completed_tasks = task_qs.filter(completed=True).order_by('-completion_date')
     pending_tasks = task_qs.filter(completed=False).order_by('creation_date')
-    project_list = Project.objects.for_user(request.user).filter(completed=False)
+    project_list = Project.objects.for_user(request.user).filter(archived=False)
 
     if not project_pk and 'tasks_latest_project_pk' in request.session:
         return redirect(tasks, request.session['tasks_latest_project_pk'])

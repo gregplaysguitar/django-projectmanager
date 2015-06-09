@@ -1,10 +1,14 @@
+from datetime import datetime, timedelta
+
 from django import forms
-from models import Project, ProjectTime, Task
+from .models import Project, ProjectTime, Task
 
 
 def get_project_choices():
-    recent = Project.objects.filter(completed=False, hidden=False)
-    other = Project.objects.filter(completed=False, hidden=True)
+    qs = Project.objects.filter(archived=False)
+    recent = qs.filter(task__projecttime__creation_date__gte= \
+                       datetime.now() - timedelta(7)).distinct()[:5]
+    other = qs.exclude(pk__in=(p.pk for p in recent))
     return (('Recent', [(p.pk, p.name) for p in recent]), 
             ('Other', [(p.pk, p.name) for p in other]))
 
@@ -61,7 +65,7 @@ class ProjectTimeForm(forms.ModelForm):
 
 class AddTaskForm(forms.ModelForm):
     #task = forms.CharField()
-    project = forms.ModelChoiceField(queryset=Project.objects.filter(completed=False))
+    project = forms.ModelChoiceField(queryset=Project.objects.filter(archived=False))
     class Meta:
         model = Task
         exclude = ('completed', 'comments', )

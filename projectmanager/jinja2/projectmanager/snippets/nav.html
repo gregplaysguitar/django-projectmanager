@@ -2,7 +2,7 @@
   <a href="{% url 'projectmanager.views.project_time_calendar' %}">
     Calendar</a>
   <a href="{% url 'projectmanager.views.tasks' %}">Tasks</a>
-  <a href="{% url 'admin:projectmanager_project_changelist' %}?billable__exact=1&completed__exact=0&hidden__exact=0">
+  <a href="{% url 'admin:projectmanager_project_changelist' %}?completed__exact=0&hidden__exact=0">
     Billable Projects</a>
   <a href="{% url 'admin:projectmanager_invoice_changelist' %}?paid__exact=0">
     Unpaid Invoices</a>
