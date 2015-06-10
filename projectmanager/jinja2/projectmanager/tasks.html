@@ -15,7 +15,7 @@
 	<div class="pending-tasks">
 		<h3>Pending tasks for {{ project or "all projects" }}</h3>
 		<form action="." method="post">
-		{{ csrf_token }}
+		<input type="hidden" name="csrfmiddlewaretoken" value="{{ csrf_token }}">
 		
 		{{ task_list_formset.management_form }}
 		
@@ -55,7 +55,7 @@
 		<h3>Add a task</h3>
 		<ul>
 			<form method="post" action=".">
-				{{ csrf_token }}
+				<input type="hidden" name="csrfmiddlewaretoken" value="{{ csrf_token }}">
 			
 				{{ task_form.as_ul }}
 				<li>
