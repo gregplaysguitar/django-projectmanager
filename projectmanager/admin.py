@@ -36,9 +36,6 @@ class ProjectAdmin(admin.ModelAdmin):
     actions = ['create_invoice_for_selected', ]
     exclude = ('owner', )
     
-    def to_invoice(self, obj):
-        return obj.invoiceable_hours() - obj.invoiced_hours()
-    
     def links(self, obj):
         time_url = reverse('admin:projectmanager_projecttime_changelist')
         return (u'<a href="%s?task__project__id__exact=%s">view</a> ' % 
@@ -105,15 +102,10 @@ admin.site.register(Invoice, InvoiceAdmin)
 class TaskAdmin(admin.ModelAdmin):
     list_filter = ('completed', 'creation_date', )
     list_display = ('project', 'task', 'total_hours', 'invoiceable_hours',
-                    'invoiced_hours', 'get_completed', )
+                    'invoiced_hours', 'when_completed', )
     search_fields = ('project__name', 'task', 'comments')
     raw_id_fields = ('project',)
     
-    def get_completed(self, obj):
-        return obj.completion_date.date() if obj.completed else ''
-    get_completed.admin_order_field = 'completed'
-    get_completed.short_description = 'Completed'
-
 admin.site.register(Task, TaskAdmin)
 
 

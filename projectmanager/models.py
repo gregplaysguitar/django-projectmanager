@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+
 import datetime, decimal
 import hashlib
 import calendar
@@ -127,6 +129,9 @@ class Project(models.Model):
         tasks = self.task_set.all()
         return sum(t.invoiced_hours() for t in tasks)
     
+    def to_invoice(self):
+        return self.invoiceable_hours() - self.invoiced_hours()
+    
     @cached_method()
     def latest_time(self):
         try:
@@ -184,6 +189,11 @@ class Task(models.Model):
     def invoiced_hours(self):
         return InvoiceRow.objects.filter(task=self) \
                          .aggregate(total=models.Sum('quantity'))['total'] or 0
+    
+    def when_completed(self):
+        return self.completion_date.date() if self.completed else ''
+    when_completed.admin_order_field = 'completed'
+    when_completed.short_description = 'Completed'
     
     @models.permalink
     def get_absolute_url(self):

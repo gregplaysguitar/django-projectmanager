@@ -20,15 +20,5 @@ urlpatterns = [
     url(r'^itemise/(\d+)/$', views.projecttime_summary),
 
     url(r'^create_invoice_for_project/(\d+)/$', views.create_invoice_for_project),
-    
-    # list/detail views
-    url(r'^projects/$', views.project_list),
-    url(r'^projects/$', views.project_detail),
-    url(r'^tasks/$', views.task_list),
-    url(r'^tasks/$', views.task_detail),
-    url(r'^invoices/$', views.invoice_list),
-    url(r'^invoices/$', views.invoice_detail),
-    url(r'^entries/$', views.projecttime_detail),
-    url(r'^entries/$', views.projecttime_detail),
         
 ]

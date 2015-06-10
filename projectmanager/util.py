@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+
 from collections import Mapping
 
 from django.http import HttpResponse
