@@ -3,7 +3,8 @@ from django.db import models
 from django.utils.safestring import mark_safe
 from django.core.urlresolvers import reverse
 
-from projectmanager.models import *
+from projectmanager.models import Project, ProjectTime, ProjectExpense, Task, \
+        Organisation, OrganisationUser, Invoice, InvoiceRow
 
 
 class ProjectExpenseInline(admin.TabularInline):
@@ -13,11 +14,6 @@ class ProjectExpenseInline(admin.TabularInline):
 class TaskInline(admin.TabularInline):
     model = Task
     extra = 1
-
-#class ProjectTimeInline(admin.TabularInline):
-#   model = ProjectTime
-#   extra = 1
-
 
 class ProjectAdmin(admin.ModelAdmin):
     def queryset(self, request):
@@ -43,9 +39,6 @@ class ProjectAdmin(admin.ModelAdmin):
     def to_invoice(self, obj):
         return obj.invoiceable_hours() - obj.invoiced_hours()
     
-    # def unbilled_time(self, obj):
-    #     return max(0, obj.total_time() - obj.time_invoiced())
-        
     def links(self, obj):
         time_url = reverse('admin:projectmanager_projecttime_changelist')
         return (u'<a href="%s?task__project__id__exact=%s">view</a> ' % 
@@ -124,8 +117,17 @@ class TaskAdmin(admin.ModelAdmin):
 admin.site.register(Task, TaskAdmin)
 
 
+class OrganisationUserInline(admin.TabularInline):
+    model = OrganisationUser
+    extra = 1
+    raw_id_fields = ('user', )
+
 class OrganisationAdmin(admin.ModelAdmin):
-    list_display = ('name', 'owner', )
-    raw_id_fields = ('owner',)
+    list_display = ('name', 'get_users', )
+    inlines = [OrganisationUserInline]
+    
+    def get_users(self, obj):
+        return ', '.join(u.get_full_name() for u in obj.users.all())
+    get_users.short_description = 'users'
 
 admin.site.register(Organisation, OrganisationAdmin)

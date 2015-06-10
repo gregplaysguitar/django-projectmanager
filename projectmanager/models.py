@@ -6,6 +6,7 @@ from django.db import models
 from django.db.models import F
 from django.conf import settings
 from django.core.cache import cache
+from django.core.exceptions import ValidationError
 from django.http import HttpResponseRedirect
 from django.db.models.signals import pre_save, post_save, post_init
 from django.contrib.auth.models import User
@@ -50,10 +51,18 @@ def default_manager_from_qs(qs_cls, **kwargs):
 
 class Organisation(models.Model):
     name = models.CharField(max_length=200)
-    owner = models.ForeignKey(User)
+    users = models.ManyToManyField(User, through='OrganisationUser')
     
     def __unicode__(self):
         return self.name
+
+
+class OrganisationUser(models.Model):
+    organisation = models.ForeignKey(Organisation)
+    user = models.ForeignKey(User)
+
+    def __unicode__(self):
+        return u"%s: %s" % (self.organisation, self.user.get_full_name())
 
 
 class Client(models.Model):
@@ -69,7 +78,7 @@ class Client(models.Model):
 
 class ProjectQuerySet(models.QuerySet):
     def for_user(self, user):
-        return self.filter(Q(users=user) | Q(owner=user))
+        return self.filter(organisation__users=user)
 
 
 class Project(models.Model):
@@ -143,11 +152,9 @@ def clear_project_cache(sender, instance, **kwargs):
 post_save.connect(clear_project_cache)
 
 
-class ForProjectUserQuerySet(models.QuerySet):
+class TaskQuerySet(models.QuerySet):
     def for_user(self, user):
-        return self.filter(Q(project__users=user) | Q(project__owner=user))
-
-ForProjectUserManager = default_manager_from_qs(ForProjectUserQuerySet)
+        return self.filter(project__organisation__users=user)
 
 
 class Task(models.Model):
@@ -160,7 +167,7 @@ class Task(models.Model):
     quoted_hours = models.DecimalField(max_digits=5, decimal_places=2, 
                                           default=0, null=True, blank=True)
 
-    objects = ForProjectUserManager()
+    objects = default_manager_from_qs(TaskQuerySet)()
     
     def total_hours(self):
         return ProjectTime.objects.filter(task=self) \
@@ -196,8 +203,7 @@ class Task(models.Model):
 
 class ProjectTimeQuerySet(models.QuerySet):
     def for_user(self, user):
-        return self.filter(Q(task__project__users=user) | \
-                           Q(task__project__owner=user))
+        return self.filter(task__project__organisation__users=user)
 
 
 def round_datetime(dt):
@@ -213,6 +219,7 @@ class ProjectTime(models.Model):
     # project = models.ForeignKey(Project)
     task = models.ForeignKey(Task)
     _hours = models.DecimalField(max_digits=4, decimal_places=2, editable=False)
+    user = models.ForeignKey(User)
     
     objects = default_manager_from_qs(ProjectTimeQuerySet)()
     
@@ -227,6 +234,8 @@ class ProjectTime(models.Model):
         return (self.end - self.start)
 
     def save(self, force_insert=False, force_update=False, using=None):
+        # TODO customisable billing increment, maybe don't quantize it here,
+        # instead store the raw values and quantize for display?
         self.start = round_datetime(self.start)
         self.end = round_datetime(self.end)
         
@@ -235,7 +244,11 @@ class ProjectTime(models.Model):
         self._hours = str(hours + part_hours)
 
         super(ProjectTime, self).save(force_insert, force_update, using)
-
+    
+    def clean(self):
+        # TODO optimise queries?
+        if self.user not in self.task.project.organisation.users.all():
+            raise ValidationError({'user': [u"Invalid user"]})
 
 
 class ProjectExpense(models.Model):
@@ -243,11 +256,14 @@ class ProjectExpense(models.Model):
     amount = models.DecimalField(max_digits=10, decimal_places=2)
     description = models.TextField()
     project = models.ForeignKey(Project)
-    
-    objects = ForProjectUserManager()
-    
+        
     def __unicode__(self):
         return "%s: %s (%s)" % (self.project.name, self.description, self.amount)
+
+
+class InvoiceQuerySet(models.QuerySet):
+    def for_user(self, user):
+        return self.filter(organisation__users=user)
 
 
 class Invoice(models.Model):
@@ -260,7 +276,7 @@ class Invoice(models.Model):
     paid = models.BooleanField(db_index=True)
     # projects = models.ManyToManyField(Project, through="InvoiceRow")
     
-    objects = ForProjectUserManager()
+    objects = default_manager_from_qs(InvoiceQuerySet)()
     
     def invoice_summary(self):
         '''Return invoice rows summarized by project.'''
@@ -270,7 +286,8 @@ class Invoice(models.Model):
                    .annotate(q_sum=models.Sum('quantity'))
     
     def pdf_filename(self):
-        return "Invoice %s - %s - %s.pdf" % (self.creation_date.strftime("%Y-%m-%d"), self.client, self.description)
+        return "Invoice_%s_%s.pdf" % (self.creation_date.strftime("%Y%m%d"), 
+                                      self.pk)
     
     def __unicode__(self):
         return '%s: %s' % (self.client, self.description)
