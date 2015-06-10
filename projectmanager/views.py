@@ -251,61 +251,71 @@ def projecttime_summary(request, project_pk):
 
 # LIST/DETAIL VIEWS
 
-def list_view(view):
-    template = 'projectmanager/%s.html' % view.__name__
-    def wrapped(request):
-        return render_to_response(template, view(request), request)
-    wrapped.__name__ = view.__name__
-    return login_required(wrapped)
+def list_view(model_cls):
+    def inner(view):
+        template = 'projectmanager/editor/%s.html' % view.__name__
+        def wrapped(request):
+            # TODO permissions
+            qs = model_cls.objects.all()
+            ctx = view(request, qs)
+            ctx.update({'qs': qs})
+            return render_to_response(template, ctx, request)
+        wrapped.__name__ = view.__name__
+        return login_required(wrapped)
+
+    return inner
 
 
 def detail_view(model_cls):
     def inner(view):
-        template = 'projectmanager/%s.html' % view.__name__
+        template = 'projectmanager/editor/%s.html' % view.__name__
         def wrapped(request, pk):
-            # obj = 
-            return render_to_response(template, view(request), request)
+            # TODO permissions
+            obj = get_object_or_404(model_cls, pk=pk)
+            ctx = view(request, obj)
+            ctx.update({'obj': obj})
+            return render_to_response(template, ctx, request)
         wrapped.__name__ = view.__name__
         return login_required(wrapped)
     
     return inner
 
 
-@list_view
-def project_list(request):
+@list_view(Project)
+def project_list(request, qs):
     return {}
 
 
 @detail_view(Project)
-def project_detail(request):
+def project_detail(request, obj):
     return {}
 
 
-@list_view
-def invoice_list(request):
+@list_view(Invoice)
+def invoice_list(request, qs):
     return {}
 
 
-@detail_view(Project)
-def invoice_detail(request):
+@detail_view(Invoice)
+def invoice_detail(request, obj):
     return {}
 
 
-@list_view
-def task_list(request):
+@list_view(Task)
+def task_list(request, qs):
     return {}
 
 
-@detail_view(Project)
-def task_detail(request):
+@detail_view(Task)
+def task_detail(request, obj):
     return {}
 
 
-@list_view
-def projecttime_list(request):
+@list_view(ProjectTime)
+def projecttime_list(request, qs):
     return {}
 
 
-@detail_view(Project)
-def projecttime_detail(request):
+@detail_view(ProjectTime)
+def projecttime_detail(request, obj):
     return {}
