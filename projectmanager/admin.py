@@ -28,10 +28,7 @@ class ProjectAdmin(admin.ModelAdmin):
                     'invoiced_hours', 'latest_time', 'to_invoice', 'links', )
     list_display_links = ('client', 'name')
     list_filter = ('archived', 'creation_date', 'client', )
-    search_fields = ('name', 'client__name', 'slug', 'description')
-    prepopulated_fields = {
-        'slug': ('client', 'name',)
-    }
+    search_fields = ('name', 'client__name', 'description')
     inlines = [ProjectExpenseInline, TaskInline, ]
     actions = ['create_invoice_for_selected', ]
     exclude = ('owner', )
@@ -103,7 +100,7 @@ class TaskAdmin(admin.ModelAdmin):
     list_filter = ('completed', 'creation_date', )
     list_display = ('project', 'task', 'total_hours', 'invoiceable_hours',
                     'invoiced_hours', 'when_completed', )
-    search_fields = ('project__name', 'task', 'comments')
+    search_fields = ('project__name', 'task')
     raw_id_fields = ('project',)
     
 admin.site.register(Task, TaskAdmin)

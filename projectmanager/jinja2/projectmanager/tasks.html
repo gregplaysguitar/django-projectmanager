@@ -38,9 +38,7 @@
 					added {{ form.instance.creation_date|date("d M y") }}
 					<a href="/projectmanager/task/{{ form.instance.id }}/">edit</a>
 				</span>
-		        {% if form.instance.comments %}
-		        <div class="comments">{{ form.instance.comments|urlize|linebreaks }}</div>
-		        {% endif %}
+		
 			</li>
 			{% else %}
 			<li>No tasks found</li>

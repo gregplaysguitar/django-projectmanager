@@ -87,15 +87,11 @@ class Project(models.Model):
     organisation = models.ForeignKey(Organisation)
     client = models.ForeignKey(Client, blank=True, null=True)
     name = models.CharField(max_length=200)
-    slug = models.CharField(max_length=60, unique=True)
     description = models.TextField(blank=True)
     archived = models.BooleanField(db_index=True)
     hourly_rate = models.DecimalField(max_digits=10, decimal_places=2, 
                                       default=pm_settings.HOURLY_RATE)
     creation_date = models.DateTimeField(auto_now_add=True)
-    billing_type = models.CharField(max_length=5, choices=(('quote', 'Quote'), 
-                                                           ('time', 'Time'),), 
-                                    default='quote')
     
     objects = default_manager_from_qs(ProjectQuerySet)()
     
@@ -104,6 +100,10 @@ class Project(models.Model):
             return "%s, %s" % (self.name, self.client)
         else:
             return self.name
+    
+    @models.permalink
+    def get_absolute_url(self):
+        return ('project_detail', (self.pk, ))
     
     def clear_cache(self):
         for name in ('total_hours', 'invoiceable_hours', 'invoiced_hours'):
@@ -165,7 +165,6 @@ class TaskQuerySet(models.QuerySet):
 class Task(models.Model):
     project = models.ForeignKey(Project)
     task =  models.TextField()
-    comments = models.TextField(blank=True, default='')
     completed = models.BooleanField(default=False)
     creation_date = models.DateTimeField(auto_now_add=True)
     completion_date = models.DateTimeField(null=True, editable=False)
