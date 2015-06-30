@@ -18,13 +18,15 @@ div#wrap {
 table {
 	width: 100%;
 }
-table th, table td {
+td {
 	border-bottom: 1px solid #CCC;
 	text-align: left;
 }
-table td.spacer,
-table tr.bottom th,
-table tr.bottom td {
+td.h {
+	font-weight: bold;
+}
+td.spacer,
+td.bottom {
 	border-bottom: none;
 }
 .spacer {
@@ -47,35 +49,35 @@ li {
 <table border="0" cellpadding="5" cellspacing="0">
 
 	<tr>
-		<th colspan="3">Invoice to:</th>
-		<th>Invoice from:</th>
-		<th>{% block name %}NAME{% endblock %}</th>
+		<td class="h" colspan="3"><div>Invoice to:</span></td>
+		<td class="h">Invoice from:</td>
+		<td class="h">{% block name %}NAME{% endblock %}</td>
 	</tr>
 	<tr>
-		<td rowspan="3" colspan="2" valign="top">
+		<td rowspan="3" colspan="3" valign="top">
 			{{ invoice.client }}<br>
 			{{ invoice.address|linebreaks }}
 		</td>
-		<th>GST Number:</th>
-		<th>{% block gst_number %}GST NUMBER{% endblock %}</th>
+		<td class="h">GST Number:</td>
+		<td class="h">{% block gst_number %}GST NUMBER{% endblock %}</td>
 	</tr>
 	<tr>
-		<th>Invoice date:</th>
-		<th>{{ invoice.creation_date|date:"d/m/Y" }}</th>
+		<td class="h">Invoice date:</td>
+		<td class="h">{{ invoice.creation_date|date:"d/m/Y" }}</td>
 	</tr>
 	<tr>
-		<th>Invoice number:</th>
-		<th>{{ invoice.id }}</th>
+		<td class="h">Invoice number:</td>
+		<td class="h">{{ invoice.id }}</td>
 	</tr>
 	
 	<tr><td class="spacer" colspan="5"></td></tr>
 
-  <tr><th colspan=5>Summary</th></tr>
+  <tr><td class="h" colspan=5>Summary</td></tr>
 	<tr>
-		<th colspan=2>Project</th>
-		<th>Quantity</th>
-		<th>Price per unit.</th>
-		<th>Cost</th>
+		<td class="h" colspan=2>Project</td>
+		<td class="h">Quantity</td>
+		<td class="h">Price per unit.</td>
+		<td class="h">Cost</td>
 	</tr>
 		
 	{% for row in invoice.invoice_summary %}
@@ -87,8 +89,8 @@ li {
 	</tr>
 	{% endfor %}
 	
-	<tr class="bottom">
-		<td colspan="3" rowspan="4">&nbsp;</td>
+	<tr>
+		<td class="bottom" colspan="3" rowspan="4">&nbsp;</td>
 		<td class="spacer" colspan="2"></td>
 	</tr>
 
@@ -100,20 +102,20 @@ li {
 		<td>GST:</td>
 		<td>${{ invoice.gst_amount|floatformat:'-2' }}</td>
 	</tr>
-	<tr class="bottom">
-		<th>TOTAL:</th>
-		<th>${{ invoice.total|floatformat:'-2' }}</th>
+	<tr>
+		<td class="h bottom">TOTAL:</td>
+		<td class="h bottom">${{ invoice.total|floatformat:'-2' }}</td>
 	</tr>
 	
 	<tr><td class="spacer" colspan="5"></td></tr>
 
-	<tr><th colspan=5>Itemised</th></tr>
+	<tr><td class="h" colspan=5>Itemised</td></tr>
 	<tr>
-		<th>Project</th>
-		<th>Detail</th>
-		<th>Quantity</th>
-		<th>Price per unit.</th>
-		<th>Cost</th>
+		<td class="h">Project</td>
+		<td class="h">Detail</td>
+		<td class="h">Quantity</td>
+		<td class="h">Price per unit.</td>
+		<td class="h">Cost</td>
 	</tr>
 		
 	{% for row in invoice.invoicerow_set.all %}
