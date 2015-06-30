@@ -121,7 +121,7 @@ class Project(models.Model):
     
     @cached_method()
     def invoiceable_hours(self):
-        tasks = self.task_set.filter(completed=True)
+        tasks = self.task_set.all()
         return sum(t.invoiceable_hours() for t in tasks)
     
     @cached_method()
