@@ -16,7 +16,6 @@ function load_task_data(callback, reload) {
 function remove_from_task_data(project_id, task) {
 	// var task = new Task(task_data);
 	
-	console.log('remove', task)
 	var existing_tasks = task_data[project_id] || [];
 	task_data[project_id] = [];
 	for (var i = 0; i < existing_tasks.length; i++) {
@@ -56,13 +55,10 @@ function time_form_init(form) {
 		new_task.val('');
 		form.find('#id_description').val('');
 		form.find('#id_completed').attr('checked', false);
+		
 		if (new_task_data) {
-			if (new_task_data.task[2]) {
-				remove_from_task_data(new_task_data.project_id, new_task_data.task);
-			}
-			else {
-				add_to_task_data(new_task_data.project_id, new_task_data.task);
-			}
+			// Always add task, even if complete
+			add_to_task_data(new_task_data.project_id, new_task_data.task);
 			update_tasks();
 			// if (project.val() == new_task_data.project_id && !new_task_data.task[2]) {
 			// 	task.val(new_task_data.task[0]);

@@ -211,12 +211,14 @@ class Task(models.Model):
                           .aggregate(total=models.Sum('_hours'))['total'] or 0
     
     def invoiceable_hours(self):
-        if not self.completed:
-            return 0
-        elif self.quoted_hours:
-            return self.quoted_hours
+        """Quoted tasks are billed on completion; non-quoted are billed as 
+           they go. 
+           TODO do we need a "bill on completion" option? """
+        
+        if self.quoted_hours:
+            return self.quoted_hours if self.completed else 0
         else:
-            return self.total_hours()
+            return self.total_hours()    
     
     def invoiced_hours(self):
         return InvoiceRow.objects.filter(task=self) \
