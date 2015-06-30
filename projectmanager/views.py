@@ -6,7 +6,7 @@ from datetime import datetime, timedelta
 from django.db.models import Q
 from django.views.decorators.http import require_POST
 from django.shortcuts import get_object_or_404, redirect
-from django.http import HttpResponse
+from django.http import HttpResponse, HttpResponseBadRequest
 from datetime import datetime
 from django.contrib.auth.decorators import login_required
 from django.forms.models import modelformset_factory
@@ -28,7 +28,7 @@ class JsonResponse(HttpResponse):
 @login_required
 def project_time_calendar(request):
     # get latest ProjectTime and use its project as the default
-    latest_time = ProjectTime.objects.all().order_by('-start').first()    
+    latest_time = ProjectTime.objects.all().order_by('-creation_date').first()    
     if latest_time:
         initial = {'project': latest_time.project.id}
     else:
@@ -60,9 +60,56 @@ def project_task_data(request):
 
 
 @login_required
+@require_POST
+def api_projecttime(request, pk=None):
+    if pk:
+        projecttime = get_object_or_404(ProjectTime, pk=pk)
+    else:
+        projecttime = ProjectTime(user=request.user)
+    
+    # TODO check permissions here
+    
+    print '>>', projecttime.pk
+    form = ProjectTimeForm(request.POST, instance=projecttime)
+    if form.is_valid():
+        form.save()
+        return JsonResponse({
+            'success': True,
+            'event': _projecttime_to_json(projecttime),
+        })
+    else:
+        return JsonResponse({
+            'success': False,
+            'errors': form.errors,
+        })
+ 
+    # for param in ('start', 'end', 'description', 'task_id'):
+    #     val = request.POST.get(param)
+    #     if val:
+    #         setattr(projecttime, param, val)
+    # 
+    # try:
+    #     projecttime.full_clean()
+    # except ValidationError, e:
+    #     return {
+    #         'success': False,
+    #         'errors': e.message_dict,
+    #     }
+    # 
+    # projecttime.save()
+    # return {
+    #   'success': True,
+    # }
+
+
+@login_required
 def api_project_time_list(request):
-    date_start = datetime.fromtimestamp(int(request.GET['start']))
-    date_end = datetime.fromtimestamp(int(request.GET['end']))
+    date_f = '%Y-%m-%d'
+    try:
+        date_start = datetime.strptime(request.GET.get('start', ''), date_f)
+        date_end = datetime.strptime(request.GET.get('end', ''), date_f)
+    except ValueError:
+        return HttpResponseBadRequest(u'Invalid start or end date')
 
     time_qs = ProjectTime.objects.for_user(request.user).filter(
         Q(start__range=(date_start, date_end)) |          # start today
@@ -80,7 +127,8 @@ def api_project_time_list(request):
 @login_required
 @require_POST
 def api_project_time_add(request):
-    form = ProjectTimeForm(request.POST)
+    form = ProjectTimeForm(request.POST, 
+                           instance=ProjectTime(user=request.user))
     return _api_project_time_form(form)
 
 
@@ -130,7 +178,7 @@ def _projecttime_to_json(projecttime):
         'start': projecttime.start.strftime("%Y-%m-%d %H:%M"),
         'end': projecttime.end.strftime("%Y-%m-%d %H:%M"),
         'title': "{0}: {1}".format(projecttime.project, projecttime.task.task),
-        'allDay': False,
+        # 'allDay': False,
         #'url': '',
     }
 

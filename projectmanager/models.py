@@ -225,7 +225,6 @@ class ProjectTime(models.Model):
     start = models.DateTimeField(db_index=True)
     end = models.DateTimeField(db_index=True)
     description = models.TextField(blank=True, default='')
-    # project = models.ForeignKey(Project)
     task = models.ForeignKey(Task)
     _hours = models.DecimalField(max_digits=4, decimal_places=2, editable=False)
     user = models.ForeignKey(User)
@@ -256,7 +255,8 @@ class ProjectTime(models.Model):
     
     def clean(self):
         # TODO optimise queries?
-        if self.user not in self.task.project.organisation.users.all():
+        if self.user_id and self.task_id and \
+           self.user not in self.task.project.organisation.users.all():
             raise ValidationError({'user': [u"Invalid user"]})
 
 
