@@ -105,11 +105,11 @@
 <div class="sidebar tasks-rightcol">
 	<h3>Filter by project</h3>
 	<ul class="project list">
-		<li><a href="{{ url('projectmanager.views.tasks', 'all') }}">All</a></li>
+		<li><a href="{{ url('projectmanager_tasks', 'all') }}">All</a></li>
 		{% for proj in project_list %}
 			{% set pending=proj.pending_tasks.count %}
 			<li class="{% if proj.hidden %} hidden{% endif %}">
-				<a href="{{ url('projectmanager.views.tasks', proj.pk) }}"
+				<a href="{{ url('projectmanager_tasks', proj.pk) }}"
 				   class="{% if proj == project %}current{% endif %}">
 					{{ proj }}
 					{% if pending %}

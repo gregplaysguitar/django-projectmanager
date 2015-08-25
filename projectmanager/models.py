@@ -51,29 +51,47 @@ def default_manager_from_qs(qs_cls, **kwargs):
     return _Manager
 
 
+class OrganisationQuerySet(models.QuerySet):
+    def get_current(self, request):
+        try:
+            return self.get(users=request.user)
+        except Organisation.DoesNotExist:
+            return None
+
+
 class Organisation(models.Model):
     name = models.CharField(max_length=200)
     users = models.ManyToManyField(User, through='OrganisationUser')
-    
+
+    objects = default_manager_from_qs(OrganisationQuerySet)()
+
     def __unicode__(self):
         return self.name
 
 
 class OrganisationUser(models.Model):
     organisation = models.ForeignKey(Organisation)
-    user = models.ForeignKey(User)
+    # temporary - users can only have one organisation for now
+    user = models.OneToOneField(User)
 
     def __unicode__(self):
         return u"%s: %s" % (self.organisation, self.user.get_full_name())
+
+
+class ClientQuerySet(models.QuerySet):
+    def for_user(self, user):
+        return self.filter(organisation__users=user)
 
 
 class Client(models.Model):
     organisation = models.ForeignKey(Organisation)
     name = models.CharField(max_length=200)
     email = models.EmailField(blank=True, default='')
-    # invoice_detail = models.TextField(blank=True, default='', 
-    #                                   help_text=u"E.g. client address")
-    
+    invoice_detail = models.TextField(blank=True, default='',
+                                      help_text=u"E.g. client address")
+
+    objects = default_manager_from_qs(ClientQuerySet)()
+
     def __unicode__(self):
         return self.name
 
@@ -89,49 +107,49 @@ class Project(models.Model):
     name = models.CharField(max_length=200)
     description = models.TextField(blank=True)
     archived = models.BooleanField(db_index=True)
-    hourly_rate = models.DecimalField(max_digits=10, decimal_places=2, 
+    hourly_rate = models.DecimalField(max_digits=10, decimal_places=2,
                                       default=pm_settings.HOURLY_RATE)
     creation_date = models.DateTimeField(auto_now_add=True)
-    
+
     objects = default_manager_from_qs(ProjectQuerySet)()
-    
+
     def __unicode__(self):
         if self.client:
             return "%s, %s" % (self.name, self.client)
         else:
             return self.name
-    
+
     @models.permalink
     def get_absolute_url(self):
         return ('project_detail', (self.pk, ))
-    
+
     def clear_cache(self):
         for name in ('total_hours', 'invoiceable_hours', 'invoiced_hours'):
             cache.delete(cache_key(self, name))
-    
+
     def get_projecttime(self):
         return ProjectTime.objects.filter(task__project=self)
-    
+
     def pending_tasks(self):
         return self.task_set.filter(completed=False)
-    
+
     @cached_method()
     def total_hours(self):
         return sum(t.total_hours() for t in self.task_set.all())
-    
+
     @cached_method()
     def invoiceable_hours(self):
         tasks = self.task_set.all()
         return sum(t.invoiceable_hours() for t in tasks)
-    
+
     @cached_method()
     def invoiced_hours(self):
         tasks = self.task_set.all()
         return sum(t.invoiced_hours() for t in tasks)
-    
+
     def to_invoice(self):
         return self.invoiceable_hours() - self.invoiced_hours()
-    
+
     @cached_method()
     def latest_time(self):
         try:
@@ -141,17 +159,17 @@ class Project(models.Model):
         else:
             return projecttime.start.date()
     latest_time.admin_order_field = 'task__projecttime__start'
-    
+
     @models.permalink
     def projecttime_summary_url(self):
-        return ('projectmanager.views.projecttime_summary', (self.pk, ), )
-    
+        return ('projectmanager_projecttime_summary', (self.pk, ), )
+
     class Meta:
         ordering = ('name',)
 
 def clear_project_cache(sender, instance, **kwargs):
     if isinstance(instance, Project):
-        instance.clear_cache()    
+        instance.clear_cache()
     elif hasattr(instance, 'project') and isinstance(instance.project, Project):
         instance.project.clear_cache()
 post_save.connect(clear_project_cache)
@@ -164,44 +182,45 @@ class TaskQuerySet(models.QuerySet):
 
 class Task(models.Model):
     project = models.ForeignKey(Project)
-    task =  models.TextField()
+    task = models.TextField()
     completed = models.BooleanField(default=False)
     creation_date = models.DateTimeField(auto_now_add=True)
     completion_date = models.DateTimeField(null=True, editable=False)
-    quoted_hours = models.DecimalField(max_digits=5, decimal_places=2, 
-                                          default=0, null=True, blank=True)
+    quoted_hours = models.DecimalField(max_digits=5, decimal_places=2,
+                                       default=0, null=True, blank=True)
 
     objects = default_manager_from_qs(TaskQuerySet)()
-    
+
     def total_hours(self):
         return ProjectTime.objects.filter(task=self) \
                           .aggregate(total=models.Sum('_hours'))['total'] or 0
-    
+
     def invoiceable_hours(self):
-        """Quoted tasks are billed on completion; non-quoted are billed as 
-           they go. 
+        """Quoted tasks are billed on completion; non-quoted are billed as
+           they go.
            TODO do we need a "bill on completion" option? """
-        
+
         if self.quoted_hours:
             return self.quoted_hours if self.completed else 0
         else:
-            return self.total_hours()    
-    
+            return self.total_hours()
+
     def invoiced_hours(self):
         return InvoiceRow.objects.filter(task=self) \
                          .aggregate(total=models.Sum('quantity'))['total'] or 0
-    
-    def when_completed(self):
-        return self.completion_date.date() if self.completed else ''
-    when_completed.admin_order_field = 'completed'
-    when_completed.short_description = 'Completed'
-    
+
+    def to_invoice(self):
+        return self.invoiceable_hours() - self.invoiced_hours()
+
     @models.permalink
     def get_absolute_url(self):
-        return ('projectmanager.views.tasks',)
+        return ('projectmanager_tasks',)
 
     def __unicode__(self):
-        return "%s: %s" % (self.project.name, self.task)
+        if self.pk:
+            return "%s: %s" % (self.project.name, self.task)
+        else:
+            return 'New task'
 
     def save(self, *args, **kwargs):
         if self.completed and not self.completion_date:
@@ -230,16 +249,16 @@ class ProjectTime(models.Model):
     task = models.ForeignKey(Task)
     _hours = models.DecimalField(max_digits=4, decimal_places=2, editable=False)
     user = models.ForeignKey(User)
-    
+
     objects = default_manager_from_qs(ProjectTimeQuerySet)()
-    
+
     @property
     def project(self):
         return self.task.project
-    
+
     def __unicode__(self):
         return "%s: %s (%s)" % (self.project.name, self.description, unicode(self.start))
-    
+
     def total_time(self):
         return (self.end - self.start)
 
@@ -248,13 +267,13 @@ class ProjectTime(models.Model):
         # instead store the raw values and quantize for display?
         self.start = round_datetime(self.start)
         self.end = round_datetime(self.end)
-        
+
         hours = self.total_time().days * 24 + self.total_time().seconds / 3600
         part_hours = ((0.0 + self.total_time().seconds / 60) % 60) / 60
         self._hours = str(hours + part_hours)
 
         super(ProjectTime, self).save(force_insert, force_update, using)
-    
+
     def clean(self):
         # TODO optimise queries?
         if self.user_id and self.task_id and \
@@ -267,7 +286,7 @@ class ProjectExpense(models.Model):
     amount = models.DecimalField(max_digits=10, decimal_places=2)
     description = models.TextField()
     project = models.ForeignKey(Project)
-        
+
     def __unicode__(self):
         return "%s: %s (%s)" % (self.project.name, self.description, self.amount)
 
@@ -280,63 +299,61 @@ class InvoiceQuerySet(models.QuerySet):
 class Invoice(models.Model):
     organisation = models.ForeignKey(Organisation)
     creation_date = models.DateTimeField(auto_now_add=True)
-    client = models.CharField(max_length=255)
-    email = models.CharField(max_length=255, blank=True)
-    description = models.CharField(max_length=255, blank=True)
-    address = models.TextField(blank=True)
-    paid = models.BooleanField(db_index=True)
+    client = models.ForeignKey(Client)
+    description = models.CharField(max_length=255, default='')
+    paid = models.BooleanField(db_index=True, default=False)
     # projects = models.ManyToManyField(Project, through="InvoiceRow")
-    
+
     objects = default_manager_from_qs(InvoiceQuerySet)()
-    
+
     def invoice_summary(self):
         '''Return invoice rows summarized by project.'''
         return self.invoicerow_set.order_by('task__project__name') \
                    .values('task__project__name', 'price') \
                    .annotate(amount=models.Sum(F('quantity') * F('price'))) \
                    .annotate(q_sum=models.Sum('quantity'))
-    
+
     def pdf_filename(self):
-        return "Invoice_%s_%s.pdf" % (self.creation_date.strftime("%Y%m%d"), 
+        return "Invoice_%s_%s.pdf" % (self.creation_date.strftime("%Y%m%d"),
                                       self.pk)
-    
+
     def __unicode__(self):
-        return '%s: %s' % (self.client, self.description)
+        if self.pk:
+            return u"%s: %s" % (self.client, self.description)
+        else:
+            return u"New Invoice"
 
     def subtotal(self):
         return sum(float(row.amount()) for row in self.invoicerow_set.all())
-    
+
     def gst_amount(self):
         return (float(self.subtotal()) * pm_settings.SALES_TAX)
-    
+
     def total(self):
         return (float(self.subtotal()) * (1 + pm_settings.SALES_TAX))
-    
+
     @models.permalink
     def get_absolute_url(self):
-        return ('projectmanager.views.invoice', [self.pk])
+        return ('projectmanager_invoice', [self.pk])
+
+    def create_rows(self, projects=Project.objects):
+        projects = projects.filter(client=self.client)
+        for project in projects:
+            # TODO is completed=True necessary?
+            for task in Task.objects.filter(project=project, completed=True):
+                to_invoice = task.invoiceable_hours() - task.invoiced_hours()
+                if to_invoice:
+                    InvoiceRow.objects.create(
+                        invoice=self,
+                        task=task,
+                        quantity=to_invoice,
+                        price=project.hourly_rate,
+                    )
 
 
-def create_invoice_for_projects(project_qs):
-    new_invoice = Invoice(paid=False)
-    for project in  project_qs.exclude(client__isnull=True)[:1]:
-        new_invoice.email = project.client.email
-        new_invoice.client = project.client.name
-    new_invoice.save()
-
-    for project in project_qs.all():
-        for task in Task.objects.filter(project=project, completed=True):
-            to_invoice = task.invoiceable_hours() - task.invoiced_hours()
-            if to_invoice:
-                InvoiceRow.objects.create(
-                    invoice=new_invoice,
-                    task=task,
-                    detail='',
-                    quantity=to_invoice,
-                    price=project.hourly_rate,
-                )
-    
-    return new_invoice
+class InvoiceRowQuerySet(models.QuerySet):
+    def for_user(self, user):
+        return self.filter(invoice__organisation__users=user)
 
 
 class InvoiceRow(models.Model):
@@ -346,15 +363,20 @@ class InvoiceRow(models.Model):
     quantity = models.DecimalField(max_digits=10, decimal_places=2)
     price = models.DecimalField(max_digits=10, decimal_places=2)
 
+    objects = default_manager_from_qs(InvoiceRowQuerySet)()
+
+    def clean(self):
+        if self.task.project.client != self.invoice.client:
+            raise ValidationError("Project and invoice client must match")
+
     class Meta:
         ordering = ('task__project__name', 'task__task')
-    
+
     def amount(self):
-        return (self.price * self.quantity)
+        return (self.price or 0) * (self.quantity or 0)
 
     def __unicode__(self):
-        created = self.invoice.creation_date.strftime('%d/%m/%Y')
-        return "%s on %s (%s)" % (self.amount(), self.task.task, created)
-    
+        return "%s: %s" % (self.task.task, self.amount())
+
     def invoice_date(self):
         return self.invoice.creation_date.date()

@@ -21,20 +21,20 @@ from .util import render_to_response
 
 class JsonResponse(HttpResponse):
     def __init__(self, data):
-        super(JsonResponse, self).__init__(json.dumps(data), 
+        super(JsonResponse, self).__init__(json.dumps(data),
                                            content_type="application/json")
 
 
 @login_required
-def project_time_calendar(request):
+def calendar(request):
     # get latest ProjectTime and use its project as the default
-    latest_time = ProjectTime.objects.all().order_by('-creation_date').first()    
+    latest_time = ProjectTime.objects.all().order_by('-creation_date').first()
     if latest_time:
         initial = {'project': latest_time.project.id}
     else:
         initial = {}
     time_form = ProjectTimeForm(initial=initial)
-    
+
     return render_to_response('projectmanager/calendar.html', {
         'time_form': time_form,
         'has_permission': True,
@@ -50,7 +50,7 @@ def project_task_data(request):
     f = Q(completed=False) | Q(completion_date__gt=cutoff)
     qs = Task.objects.filter(f).order_by('project_id') \
              .values_list('project_id', *TASK_FIELDS)
-             
+
     data = {}
     for task in qs:
         if not data.get(task[0]):
@@ -66,9 +66,9 @@ def api_projecttime(request, pk=None):
         projecttime = get_object_or_404(ProjectTime, pk=pk)
     else:
         projecttime = ProjectTime(user=request.user)
-    
+
     # TODO check permissions here
-    
+
     print '>>', projecttime.pk
     form = ProjectTimeForm(request.POST, instance=projecttime)
     if form.is_valid():
@@ -82,12 +82,12 @@ def api_projecttime(request, pk=None):
             'success': False,
             'errors': form.errors,
         })
- 
+
     # for param in ('start', 'end', 'description', 'task_id'):
     #     val = request.POST.get(param)
     #     if val:
     #         setattr(projecttime, param, val)
-    # 
+    #
     # try:
     #     projecttime.full_clean()
     # except ValidationError, e:
@@ -95,7 +95,7 @@ def api_projecttime(request, pk=None):
     #         'success': False,
     #         'errors': e.message_dict,
     #     }
-    # 
+    #
     # projecttime.save()
     # return {
     #   'success': True,
@@ -127,7 +127,7 @@ def api_project_time_list(request):
 @login_required
 @require_POST
 def api_project_time_add(request):
-    form = ProjectTimeForm(request.POST, 
+    form = ProjectTimeForm(request.POST,
                            instance=ProjectTime(user=request.user))
     return _api_project_time_form(form)
 
@@ -186,7 +186,7 @@ def _projecttime_to_json(projecttime):
 @login_required
 def tasks(request, project_pk=None):
     task_qs = Task.objects.for_user(request.user)
-    
+
     completed_tasks = task_qs.filter(completed=True).order_by('-completion_date')
     pending_tasks = task_qs.filter(completed=False).order_by('creation_date')
     project_list = Project.objects.for_user(request.user).filter(archived=False)
@@ -236,20 +236,13 @@ def tasks(request, project_pk=None):
     return render_to_response('projectmanager/tasks.html', data, request)
 
 
-@login_required
-def create_invoice_for_project(request, project_id):
-    project = get_object_or_404(Project, pk=project_id)
-    invoice = project.create_invoice()
-    return redirect('projectmanager.views.invoice', invoice.id)
-
-
 def render_to_pdf(template_src, context_dict):
     template = get_template(template_src)
     context = Context(context_dict)
-    html  = template.render(context)
+    html = template.render(context)
     result = StringIO()
     status = pisa.CreatePDF(StringIO(html.encode("UTF-8")), dest=result)
-    
+
     # pdf = pisa.pisaDocument(StringIO(html.encode("UTF-8")), result)
     if status.err:
         return HttpResponse(u"Error creating pdf")
