@@ -31,7 +31,7 @@ class ProjectAdmin(admin.ModelAdmin):
     list_display = ('client', 'name', 'total_hours', 'invoiceable_hours',
                     'invoiced_hours', 'latest_time', 'to_invoice', 'links', )
     list_display_links = ('client', 'name')
-    list_filter = ('archived', 'creation_date', 'client', )
+    list_filter = ('archived', 'created', 'client', )
     search_fields = ('name', 'client__name', 'description')
     inlines = [ProjectExpenseInline, TaskInline, ]
     actions = ['create_invoice_for_selected', ]
@@ -73,9 +73,9 @@ class InvoiceRowInline(admin.TabularInline):
 
 
 class InvoiceAdmin(admin.ModelAdmin):
-    list_display = ('client', 'description', 'creation_date_display',
+    list_display = ('client', 'description', 'created_display',
                     'subtotal', 'paid', 'invoice')
-    list_filter = ('creation_date', 'paid')
+    list_filter = ('created', 'paid')
     inlines = [InvoiceRowInline]
     actions = ['make_paid']
     search_fields = ['client', 'email', 'description', 'address']
@@ -92,9 +92,9 @@ class InvoiceAdmin(admin.ModelAdmin):
     def make_paid(self, request, queryset):
         queryset.update(paid=True)
 
-    def creation_date_display(self, instance):
-        return datetime.date(instance.creation_date.year, instance.creation_date.month, instance.creation_date.day)
-    creation_date_display.admin_order_field = 'creation_date'
+    def created_display(self, instance):
+        return datetime.date(instance.created.year, instance.created.month, instance.created.day)
+    created_display.admin_order_field = 'created'
 
     def invoice(self, instance):
         return u'<a href="/invoice/%d/%s">pdf</a>' % (instance.id, instance.pdf_filename()) + u' | <a href="/invoice/%d/">html</a>' % (instance.id)
@@ -105,7 +105,7 @@ admin.site.register(Invoice, InvoiceAdmin)
 
 
 class TaskAdmin(admin.ModelAdmin):
-    list_filter = ('completed', 'creation_date', )
+    list_filter = ('completed', 'created', )
     list_display = ('project', 'task', 'total_hours', 'invoiceable_hours',
                     'invoiced_hours', 'when_completed', )
     search_fields = ('project__name', 'task')

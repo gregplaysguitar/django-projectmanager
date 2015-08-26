@@ -109,7 +109,7 @@ class Project(models.Model):
     archived = models.BooleanField(db_index=True)
     hourly_rate = models.DecimalField(max_digits=10, decimal_places=2,
                                       default=pm_settings.HOURLY_RATE)
-    creation_date = models.DateTimeField(auto_now_add=True)
+    created = models.DateTimeField(auto_now_add=True)
 
     objects = default_manager_from_qs(ProjectQuerySet)()
 
@@ -184,7 +184,7 @@ class Task(models.Model):
     project = models.ForeignKey(Project)
     task = models.TextField()
     completed = models.BooleanField(default=False)
-    creation_date = models.DateTimeField(auto_now_add=True)
+    created = models.DateTimeField(auto_now_add=True)
     completion_date = models.DateTimeField(null=True, editable=False)
     quoted_hours = models.DecimalField(max_digits=5, decimal_places=2,
                                        default=0, null=True, blank=True)
@@ -228,7 +228,7 @@ class Task(models.Model):
         return super(Task, self).save(*args, **kwargs)
 
     class Meta:
-        ordering = ('creation_date',)
+        ordering = ('created',)
 
 
 class ProjectTimeQuerySet(models.QuerySet):
@@ -242,7 +242,7 @@ def round_datetime(dt):
 
 
 class ProjectTime(models.Model):
-    creation_date = models.DateTimeField(auto_now_add=True)
+    created = models.DateTimeField(auto_now_add=True)
     start = models.DateTimeField(db_index=True)
     end = models.DateTimeField(db_index=True)
     description = models.TextField(blank=True, default='')
@@ -282,7 +282,7 @@ class ProjectTime(models.Model):
 
 
 class ProjectExpense(models.Model):
-    creation_date = models.DateTimeField(auto_now_add=True)
+    created = models.DateTimeField(auto_now_add=True)
     amount = models.DecimalField(max_digits=10, decimal_places=2)
     description = models.TextField()
     project = models.ForeignKey(Project)
@@ -298,7 +298,7 @@ class InvoiceQuerySet(models.QuerySet):
 
 class Invoice(models.Model):
     organisation = models.ForeignKey(Organisation)
-    creation_date = models.DateTimeField(auto_now_add=True)
+    created = models.DateTimeField(auto_now_add=True)
     client = models.ForeignKey(Client)
     description = models.CharField(max_length=255, default='')
     paid = models.BooleanField(db_index=True, default=False)
@@ -314,7 +314,7 @@ class Invoice(models.Model):
                    .annotate(q_sum=models.Sum('quantity'))
 
     def pdf_filename(self):
-        return "Invoice_%s_%s.pdf" % (self.creation_date.strftime("%Y%m%d"),
+        return "Invoice_%s_%s.pdf" % (self.created.strftime("%Y%m%d"),
                                       self.pk)
 
     def __unicode__(self):
@@ -379,4 +379,4 @@ class InvoiceRow(models.Model):
         return "%s: %s" % (self.task.task, self.amount())
 
     def invoice_date(self):
-        return self.invoice.creation_date.date()
+        return self.invoice.created.date()

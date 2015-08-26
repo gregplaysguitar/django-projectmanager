@@ -5,7 +5,7 @@
 </head>
 
 <body>
-	
+
 <style>
 body {
 	text-align: left;
@@ -41,9 +41,9 @@ li {
 
 <h1>GST Invoice &mdash; {{ invoice.description }}</h1>
 
-{% ifnotequal type "pdf" %}
-<a href="{{ invoice.pdf_filename }}">Download as pdf</a>
-{% endifnotequal %}
+{% if type != "pdf" %}
+<a href="{{ invoice.pdf_filename() }}">Download as pdf</a>
+{% endif %}
 <hr>
 
 <table border="0" cellpadding="5" cellspacing="0">
@@ -63,13 +63,13 @@ li {
 	</tr>
 	<tr>
 		<td class="h">Invoice date:</td>
-		<td class="h">{{ invoice.creation_date|date:"d/m/Y" }}</td>
+		<td class="h">{{ invoice.created|date("d/m/Y") }}</td>
 	</tr>
 	<tr>
 		<td class="h">Invoice number:</td>
 		<td class="h">{{ invoice.id }}</td>
 	</tr>
-	
+
 	<tr><td class="spacer" colspan="5"></td></tr>
 
   <tr><td class="h" colspan=5>Summary</td></tr>
@@ -79,16 +79,16 @@ li {
 		<td class="h">Price per unit.</td>
 		<td class="h">Cost</td>
 	</tr>
-		
-	{% for row in invoice.invoice_summary %}
+
+	{% for row in invoice.invoice_summary() %}
 	<tr>
 		<td colspan=2>{{ row.task__project__name }}</td>
 		<td>{{ row.q_sum }}</td>
-		<td>${{ row.price|floatformat:'-2' }}</td>
-		<td>${{ row.amount|floatformat:'-2' }}</td>
+		<td>${{ row.price|floatformat('-2') }}</td>
+		<td>${{ row.amount|floatformat('-2') }}</td>
 	</tr>
 	{% endfor %}
-	
+
 	<tr>
 		<td class="bottom" colspan="3" rowspan="4">&nbsp;</td>
 		<td class="spacer" colspan="2"></td>
@@ -96,17 +96,17 @@ li {
 
 	<tr>
 		<td>Subtotal:</td>
-		<td>${{ invoice.subtotal|floatformat:'-2' }}</td>
+		<td>${{ invoice.subtotal|floatformat('-2') }}</td>
 	</tr>
 	<tr>
 		<td>GST:</td>
-		<td>${{ invoice.gst_amount|floatformat:'-2' }}</td>
+		<td>${{ invoice.gst_amount|floatformat('-2') }}</td>
 	</tr>
 	<tr>
 		<td class="h bottom">TOTAL:</td>
-		<td class="h bottom">${{ invoice.total|floatformat:'-2' }}</td>
+		<td class="h bottom">${{ invoice.total|floatformat('-2') }}</td>
 	</tr>
-	
+
 	<tr><td class="spacer" colspan="5"></td></tr>
 
 	<tr><td class="h" colspan=5>Itemised</td></tr>
@@ -117,14 +117,14 @@ li {
 		<td class="h">Price per unit.</td>
 		<td class="h">Cost</td>
 	</tr>
-		
-	{% for row in invoice.invoicerow_set.all %}
+
+	{% for row in invoice.invoicerow_set.all() %}
 	<tr>
 		<td>{{ row.task.project.name }}</td>
 		<td>{{ row.task.task }}</td>
 		<td>{{ row.quantity }}</td>
-		<td>${{ row.price|floatformat:'-2' }}</td>
-		<td>${{ row.amount|floatformat:'-2' }}</td>
+		<td>${{ row.price|floatformat('-2') }}</td>
+		<td>${{ row.amount|floatformat('-2') }}</td>
 	</tr>
 	{% endfor %}
 	<tr><td class="spacer" colspan="5"></td></tr>

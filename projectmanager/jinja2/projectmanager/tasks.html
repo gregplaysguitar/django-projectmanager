@@ -16,9 +16,9 @@
 		<h3>Pending tasks for {{ project or "all projects" }}</h3>
 		<form action="." method="post">
 		<input type="hidden" name="csrfmiddlewaretoken" value="{{ csrf_token }}">
-		
+
 		{{ task_list_formset.management_form }}
-		
+
 		<ul>
 			{% for form in task_list_formset.forms %}
 			 <li>
@@ -35,10 +35,10 @@
 					{% if form.instance.estimated_hours %}
 					<strong>{{ form.instance.estimated_hours }}h</strong>,
 					{% endif %}
-					added {{ form.instance.creation_date|date("d M y") }}
+					added {{ form.instance.created|date("d M y") }}
 					<a href="/projectmanager/task/{{ form.instance.id }}/">edit</a>
 				</span>
-		
+
 			</li>
 			{% else %}
 			<li>No tasks found</li>
@@ -48,13 +48,13 @@
 		</form>
 	</div>
 
-	
+
 	<div class="add-task form">
 		<h3>Add a task</h3>
 		<ul>
 			<form method="post" action=".">
 				<input type="hidden" name="csrfmiddlewaretoken" value="{{ csrf_token }}">
-			
+
 				{{ task_form.as_ul }}
 				<li>
 					<input type="submit" value="Add" class="submit">
@@ -63,8 +63,8 @@
 		</ul>
 	</div>
 
-	
-	<div class="completed-tasks">	
+
+	<div class="completed-tasks">
 		{% if project %}
 		<h3>Completed tasks for {{ project }}</h3>
 		<ul>

@@ -28,7 +28,7 @@ class JsonResponse(HttpResponse):
 @login_required
 def calendar(request):
     # get latest ProjectTime and use its project as the default
-    latest_time = ProjectTime.objects.all().order_by('-creation_date').first()
+    latest_time = ProjectTime.objects.all().order_by('-created').first()
     if latest_time:
         initial = {'project': latest_time.project.id}
     else:
@@ -188,7 +188,7 @@ def tasks(request, project_pk=None):
     task_qs = Task.objects.for_user(request.user)
 
     completed_tasks = task_qs.filter(completed=True).order_by('-completion_date')
-    pending_tasks = task_qs.filter(completed=False).order_by('creation_date')
+    pending_tasks = task_qs.filter(completed=False).order_by('created')
     project_list = Project.objects.for_user(request.user).filter(archived=False)
 
     if not project_pk and 'tasks_latest_project_pk' in request.session:
