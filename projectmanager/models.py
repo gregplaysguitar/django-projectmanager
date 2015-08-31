@@ -228,7 +228,7 @@ class Task(models.Model):
         return super(Task, self).save(*args, **kwargs)
 
     class Meta:
-        ordering = ('created',)
+        ordering = ('-created', )
 
 
 class ProjectTimeQuerySet(models.QuerySet):
@@ -305,6 +305,9 @@ class Invoice(models.Model):
     # projects = models.ManyToManyField(Project, through="InvoiceRow")
 
     objects = default_manager_from_qs(InvoiceQuerySet)()
+
+    class Meta:
+        ordering = ('-created', )
 
     def invoice_summary(self):
         '''Return invoice rows summarized by project.'''
