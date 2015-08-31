@@ -238,8 +238,7 @@ def tasks(request, project_pk=None):
 
 def render_to_pdf(template_src, context_dict):
     template = get_template(template_src)
-    context = Context(context_dict)
-    html = template.render(context)
+    html = template.render(context_dict)
     result = StringIO()
     status = pisa.CreatePDF(StringIO(html.encode("UTF-8")), dest=result)
 
