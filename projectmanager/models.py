@@ -340,7 +340,7 @@ class Invoice(models.Model):
         return ('projectmanager_invoice', [self.pk])
 
     def create_rows(self, projects=Project.objects):
-        projects = projects.filter(client=self.client)
+        projects = projects.filter(client=self.client, archived=False)
         for project in projects:
             # TODO is completed=True necessary?
             for task in Task.objects.filter(project=project, completed=True):
