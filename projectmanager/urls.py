@@ -31,7 +31,7 @@ urlpatterns = [
     # url(r'^invoice/(\d+)/.+\.(pdf)$', views.invoice, {},
     #     'projectmanager_invoice'),
 
-    # url(r'^itemise/(\d+)/$', views.projecttime_summary, {},
-    #     'projectmanager_projecttime_summary'),
+    url(r'^itemise/(\d+)/$', views.projecttime_summary, {},
+        'projectmanager_projecttime_summary'),
 
 ]
