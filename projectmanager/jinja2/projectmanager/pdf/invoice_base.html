@@ -55,8 +55,8 @@ li {
 	</tr>
 	<tr>
 		<td rowspan="3" colspan="3" valign="top">
-			{{ invoice.client }}<br>
-			{{ invoice.address|linebreaks }}
+			{{ invoice.client.name }}<br>
+			{{ invoice.client.invoice_detail|linebreaks }}
 		</td>
 		<td class="h">GST Number:</td>
 		<td class="h">{% block gst_number %}GST NUMBER{% endblock %}</td>
@@ -96,15 +96,15 @@ li {
 
 	<tr>
 		<td>Subtotal:</td>
-		<td>${{ invoice.subtotal|floatformat('-2') }}</td>
+		<td>${{ invoice.subtotal()|floatformat('-2') }}</td>
 	</tr>
 	<tr>
 		<td>GST:</td>
-		<td>${{ invoice.gst_amount|floatformat('-2') }}</td>
+		<td>${{ invoice.gst_amount()|floatformat('-2') }}</td>
 	</tr>
 	<tr>
 		<td class="h bottom">TOTAL:</td>
-		<td class="h bottom">${{ invoice.total|floatformat('-2') }}</td>
+		<td class="h bottom">${{ invoice.total()|floatformat('-2') }}</td>
 	</tr>
 
 	<tr><td class="spacer" colspan="5"></td></tr>
@@ -124,7 +124,7 @@ li {
 		<td>{{ row.task.task }}</td>
 		<td>{{ row.quantity }}</td>
 		<td>${{ row.price|floatformat('-2') }}</td>
-		<td>${{ row.amount|floatformat('-2') }}</td>
+		<td>${{ row.amount()|floatformat('-2') }}</td>
 	</tr>
 	{% endfor %}
 	<tr><td class="spacer" colspan="5"></td></tr>
