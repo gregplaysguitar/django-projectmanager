@@ -134,6 +134,10 @@ class Project(models.Model):
         return self.task_set.filter(completed=False)
 
     @cached_method()
+    def quoted_hours(self):
+        return sum(t.quoted_hours for t in self.task_set.all())
+
+    @cached_method()
     def total_hours(self):
         return sum(t.total_hours() for t in self.task_set.all())
 
