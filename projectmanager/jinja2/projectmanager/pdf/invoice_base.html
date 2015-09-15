@@ -37,6 +37,57 @@ li {
 }
 </style>
 
+
+{% macro summarise(invoice) %}
+	<tr>
+		<td class="h" colspan=2>Project</td>
+		<td class="h">Quantity</td>
+		<td class="h">Price per unit.</td>
+		<td class="h">Cost</td>
+	</tr>
+
+	{% for row in invoice.invoice_summary() %}
+	<tr>
+		<td colspan=2>{{ row.task__project__name or 'Other' }}</td>
+		<td>{{ row.q_sum or '-' }}</td>
+		<td>
+			{% if row.price %}${{ row.price|floatformat('-2') }}
+			{% else %}-{% endif %}
+		</td>
+		<td>${{ row.amount|floatformat('-2') }}</td>
+	</tr>
+	{% endfor %}
+{% endmacro %}
+
+{% macro itemise(invoice, show_project=True) %}
+	<tr>
+		{% if show_project %}
+			<td class="h">Project</td>
+			<td class="h">Detail</td>
+		{% else %}
+			<td class="h" colspan="2">Detail</td>
+		{% endif %}
+		<td class="h">Quantity</td>
+		<td class="h">Price per unit.</td>
+		<td class="h">Cost</td>
+	</tr>
+
+	{% for row in invoice.invoicerow_set.all() %}
+	<tr>
+		{% if show_project and row.task %}
+			<td>{{ row.task.project.name }}</td>
+			<td>{{ row.task.task }}</td>
+		{% else %}
+			<td colspan="2">{{ row.detail }}</td>
+		{% endif %}
+		<td>{{ row.quantity }}</td>
+		<td>${{ row.price|floatformat('-2') }}</td>
+		<td>${{ row.amount()|floatformat('-2') }}</td>
+	</tr>
+	{% endfor %}
+	<tr><td class="spacer" colspan="5"></td></tr>
+{% endmacro %}
+
 <div id="wrap">
 
 <h1>GST Invoice &mdash; {{ invoice.description }}</h1>
@@ -72,22 +123,12 @@ li {
 
 	<tr><td class="spacer" colspan="5"></td></tr>
 
-  <tr><td class="h" colspan=5>Summary</td></tr>
-	<tr>
-		<td class="h" colspan=2>Project</td>
-		<td class="h">Quantity</td>
-		<td class="h">Price per unit.</td>
-		<td class="h">Cost</td>
-	</tr>
-
-	{% for row in invoice.invoice_summary() %}
-	<tr>
-		<td colspan=2>{{ row.task__project__name }}</td>
-		<td>{{ row.q_sum }}</td>
-		<td>${{ row.price|floatformat('-2') }}</td>
-		<td>${{ row.amount|floatformat('-2') }}</td>
-	</tr>
-	{% endfor %}
+	{% if invoice.show_summary %}
+		<tr><td class="h" colspan=5>Summary</td></tr>
+		{{ summarise(invoice) }}
+	{% else %}
+		{{ itemise(invoice, show_project=False) }}
+	{% endif %}
 
 	<tr>
 		<td class="bottom" colspan="3" rowspan="4">&nbsp;</td>
@@ -109,26 +150,10 @@ li {
 
 	<tr><td class="spacer" colspan="5"></td></tr>
 
-	<tr><td class="h" colspan=5>Itemised</td></tr>
-	<tr>
-		<td class="h">Project</td>
-		<td class="h">Detail</td>
-		<td class="h">Quantity</td>
-		<td class="h">Price per unit.</td>
-		<td class="h">Cost</td>
-	</tr>
-
-	{% for row in invoice.invoicerow_set.all() %}
-	<tr>
-		<td>{{ row.task.project.name }}</td>
-		<td>{{ row.task.task }}</td>
-		<td>{{ row.quantity }}</td>
-		<td>${{ row.price|floatformat('-2') }}</td>
-		<td>${{ row.amount()|floatformat('-2') }}</td>
-	</tr>
-	{% endfor %}
-	<tr><td class="spacer" colspan="5"></td></tr>
-
+	{% if invoice.show_summary %}
+		<tr><td class="h" colspan=5>Itemised</td></tr>
+		{{ itemise(invoice) }}
+	{% endif %}
 </table>
 
 <hr>

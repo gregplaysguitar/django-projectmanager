@@ -313,12 +313,31 @@ class Invoice(models.Model):
     class Meta:
         ordering = ('-created', )
 
+    @property
+    def show_summary(self):
+        return bool(self.invoicerow_set.filter(task__isnull=False).count())
+
     def invoice_summary(self):
         '''Return invoice rows summarized by project.'''
-        return self.invoicerow_set.order_by('task__project__name') \
+
+        qs = self.invoicerow_set.filter(task__isnull=False)
+
+        summary = list(qs.order_by('task__project__name') \
                    .values('task__project__name', 'price') \
                    .annotate(amount=models.Sum(F('quantity') * F('price'))) \
-                   .annotate(q_sum=models.Sum('quantity'))
+                   .annotate(q_sum=models.Sum('quantity')))
+
+        other = self.invoicerow_set.filter(task__isnull=True)
+        if other.count():
+            amount = other.aggregate(
+                amount=models.Sum(F('quantity') * F('price')))['amount']
+            summary.append({
+                'task__project__name': 'Other',
+                'amount': amount,
+            })
+        return summary
+
+
 
     def pdf_filename(self):
         return "Invoice_%s_%s.pdf" % (self.created.strftime("%Y%m%d"),
