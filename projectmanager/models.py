@@ -364,17 +364,31 @@ class InvoiceRowQuerySet(models.QuerySet):
 
 
 class InvoiceRow(models.Model):
-    task = models.ForeignKey(Task)
+    task = models.ForeignKey(Task, null=True, blank=True)
     invoice = models.ForeignKey(Invoice)
     detail = models.CharField(max_length=255, blank=True)
-    quantity = models.DecimalField(max_digits=10, decimal_places=2)
-    price = models.DecimalField(max_digits=10, decimal_places=2)
+    quantity = models.DecimalField(max_digits=10, decimal_places=2, blank=True)
+    price = models.DecimalField(max_digits=10, decimal_places=2, blank=True)
 
     objects = default_manager_from_qs(InvoiceRowQuerySet)()
 
     def clean(self):
-        if self.task.project.client != self.invoice.client:
-            raise ValidationError("Project and invoice client must match")
+        if self.task:
+            if self.task.project.client != self.invoice.client:
+                raise ValidationError("Project and invoice client must match")
+
+            # prefill amounts if a task is specified
+            if not self.quantity:
+                self.quantity = self.task.to_invoice()
+            if not self.price:
+                self.price = self.task.project.hourly_rate
+        else:
+            errors = {}
+            for f in ('detail', 'quantity', 'price'):
+                if not getattr(self, f):
+                    errors[f] = "%s is required" % f.title()
+            if len(errors):
+                raise ValidationError(errors)
 
     class Meta:
         ordering = ('task__project__name', 'task__task')
@@ -383,7 +397,8 @@ class InvoiceRow(models.Model):
         return (self.price or 0) * (self.quantity or 0)
 
     def __unicode__(self):
-        return "%s: %s" % (self.task.task, self.amount())
+        desc = self.task.task if self.task else self.detail
+        return "%s: %s" % (desc, self.amount())
 
     def invoice_date(self):
         return self.invoice.created.date()
