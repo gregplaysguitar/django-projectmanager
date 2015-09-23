@@ -95,6 +95,9 @@ class Client(models.Model):
     def __unicode__(self):
         return self.name
 
+    class Meta:
+        ordering = ('name', )
+
 
 class ProjectQuerySet(models.QuerySet):
     def for_user(self, user):
