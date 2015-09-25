@@ -6,12 +6,11 @@ from datetime import datetime, timedelta
 from django.db.models import Q
 from django.views.decorators.http import require_POST
 from django.shortcuts import get_object_or_404, redirect
-from django.http import HttpResponse, HttpResponseBadRequest
-from datetime import datetime
+from django.http import HttpResponse, HttpResponseBadRequest, \
+    HttpResponseForbidden
 from django.contrib.auth.decorators import login_required
 from django.forms.models import modelformset_factory
 from django.template.loader import get_template
-from django.template import Context, RequestContext
 from xhtml2pdf import pisa
 
 from .forms import ProjectTimeForm, AddTaskForm
@@ -43,8 +42,12 @@ def calendar(request):
 
 
 TASK_FIELDS = ('id', 'task', 'completed')
-@login_required
+
+
 def project_task_data(request):
+    if not request.user.is_authenticated():
+        return HttpResponseForbidden('Permission denied')
+
     # retrieve tasks that are incomplete or completed in the last day
     cutoff = datetime.now() - timedelta(1)
     f = Q(completed=False) | Q(completion_date__gt=cutoff)
@@ -59,17 +62,17 @@ def project_task_data(request):
     return JsonResponse(data)
 
 
-@login_required
 @require_POST
 def api_projecttime(request, pk=None):
+    if not request.user.is_authenticated():
+        return HttpResponseForbidden('Permission denied')
+
     if pk:
-        projecttime = get_object_or_404(ProjectTime, pk=pk)
+        projecttime = get_object_or_404(
+            ProjectTime.objects.for_user(request.user), pk=pk)
     else:
         projecttime = ProjectTime(user=request.user)
 
-    # TODO check permissions here
-
-    print '>>', projecttime.pk
     form = ProjectTimeForm(request.POST, instance=projecttime)
     if form.is_valid():
         form.save()
@@ -102,8 +105,10 @@ def api_projecttime(request, pk=None):
     # }
 
 
-@login_required
 def api_project_time_list(request):
+    if not request.user.is_authenticated():
+        return HttpResponseForbidden('Permission denied')
+
     date_f = '%Y-%m-%d'
     try:
         date_start = datetime.strptime(request.GET.get('start', ''), date_f)
@@ -123,26 +128,34 @@ def api_project_time_list(request):
     return JsonResponse(json_data)
 
 
-@login_required
 @require_POST
 def api_project_time_add(request):
+    if not request.user.is_authenticated():
+        return HttpResponseForbidden('Permission denied')
+
     form = ProjectTimeForm(request.POST,
                            instance=ProjectTime(user=request.user))
     return _api_project_time_form(form)
 
 
-@login_required
 @require_POST
 def api_project_time_edit(request):
-    time = ProjectTime.objects.get(pk=int(request.POST['id']))
+    if not request.user.is_authenticated():
+        return HttpResponseForbidden('Permission denied')
+
+    qs = ProjectTime.objects.for_user(request.user)
+    time = qs.get(pk=int(request.POST['id']))
     form = ProjectTimeForm(request.POST, instance=time)
     return _api_project_time_form(form)
 
 
-@login_required
 @require_POST
 def api_project_time_move(request):
-    time = ProjectTime.objects.get(pk=int(request.POST['id']))
+    if not request.user.is_authenticated():
+        return HttpResponseForbidden('Permission denied')
+
+    qs = ProjectTime.objects.for_user(request.user)
+    time = qs.get(pk=int(request.POST['id']))
     # be more relaxed with validation, other fields don't have to be validated.
     time.start = datetime.strptime(request.POST['start'], "%Y-%m-%d %H:%M")
     time.end = datetime.strptime(request.POST['end'], "%Y-%m-%d %H:%M")
