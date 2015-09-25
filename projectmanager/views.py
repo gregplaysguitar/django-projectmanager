@@ -112,9 +112,8 @@ def api_project_time_list(request):
         return HttpResponseBadRequest(u'Invalid start or end date')
 
     time_qs = ProjectTime.objects.for_user(request.user).filter(
-        Q(start__range=(date_start, date_end)) |          # start today
-        Q(end__range=(date_start, date_end)) |            # working over midnight
-        (Q(start__lt=date_start) & Q(end__gt=date_end))   # spanned multiple days
+        start__lt=date_end,
+        end__gt=date_start
     ).order_by('start')
 
     json_data = []
