@@ -181,8 +181,11 @@ def _api_project_time_form(form):
 
 
 def _projecttime_to_json(projecttime):
+
+    # import time; time.sleep(1)
+
     task = projecttime.task
-    return  {
+    return {
         '_id': projecttime.id,
         "_description": projecttime.description,
         '_task': [getattr(task, f) for f in TASK_FIELDS],
@@ -191,7 +194,7 @@ def _projecttime_to_json(projecttime):
         'end': projecttime.end.strftime("%Y-%m-%d %H:%M"),
         'title': "{0}: {1}".format(projecttime.project, projecttime.task.task),
         # 'allDay': False,
-        #'url': '',
+        # 'url': '',
     }
 
 
