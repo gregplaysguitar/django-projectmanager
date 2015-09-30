@@ -269,7 +269,7 @@ class ProjectTime(models.Model):
     def total_time(self):
         return (self.end - self.start)
 
-    def save(self, force_insert=False, force_update=False, using=None):
+    def save(self, *args, **kwargs):
         # TODO customisable billing increment, maybe don't quantize it here,
         # instead store the raw values and quantize for display?
         self.start = round_datetime(self.start)
@@ -279,7 +279,7 @@ class ProjectTime(models.Model):
         part_hours = ((0.0 + self.total_time().seconds / 60) % 60) / 60
         self._hours = str(hours + part_hours)
 
-        super(ProjectTime, self).save(force_insert, force_update, using)
+        return super(ProjectTime, self).save(*args, **kwargs)
 
     def clean(self):
         # TODO optimise queries?
