@@ -1,3 +1,4 @@
+import os
 import json
 from cStringIO import StringIO
 import csv
@@ -11,6 +12,7 @@ from django.http import HttpResponse, HttpResponseBadRequest, \
 from django.contrib.auth.decorators import login_required
 from django.forms.models import modelformset_factory
 from django.template.loader import get_template
+from django.conf import settings
 from xhtml2pdf import pisa
 
 from .forms import ProjectTimeForm, AddTaskForm
@@ -251,11 +253,25 @@ def tasks(request, project_pk=None):
     return render_to_response('projectmanager/tasks.html', data, request)
 
 
+def pisa_link_callback(uri, rel):
+    if uri.startswith(settings.MEDIA_URL):
+        path = os.path.join(settings.MEDIA_ROOT,
+                            uri.replace(settings.MEDIA_URL, ""))
+    elif uri.startswith(settings.STATIC_URL):
+        path = os.path.join(settings.STATIC_ROOT,
+                            uri.replace(settings.STATIC_URL, ""))
+    else:
+        path = uri
+
+    return path
+
+
 def render_to_pdf(template_src, context_dict):
     template = get_template(template_src)
     html = template.render(context_dict)
     result = StringIO()
-    status = pisa.CreatePDF(StringIO(html.encode("UTF-8")), dest=result)
+    status = pisa.CreatePDF(StringIO(html.encode("UTF-8")), dest=result,
+                            link_callback=pisa_link_callback)
 
     # pdf = pisa.pisaDocument(StringIO(html.encode("UTF-8")), result)
     if status.err:

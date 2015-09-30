@@ -5,10 +5,10 @@
 </head>
 
 <body>
-
 <style>
 body {
 	text-align: left;
+	font-family: Helvetica, sans-serif;
 }
 div#wrap {
 	width: 800px;
@@ -19,7 +19,7 @@ table {
 	width: 100%;
 }
 td {
-	border-bottom: 1px solid #CCC;
+	border-bottom: 1px solid #eee;
 	text-align: left;
 }
 td.h {
@@ -36,7 +36,9 @@ li {
 	margin-bottom: 1em;
 }
 </style>
+{% block style %}
 
+{% endblock %}
 
 {% macro summarise(invoice) %}
 	<tr>
