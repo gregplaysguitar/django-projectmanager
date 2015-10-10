@@ -264,7 +264,10 @@ class ProjectTime(models.Model):
         return self.task.project
 
     def __unicode__(self):
-        return "%s: %s (%s)" % (self.project.name, self.description, unicode(self.start))
+        if not self.pk:
+            return 'New %s' % self._meta.verbose_name
+        return "%s: %s (%s)" % (self.project.name, self.description,
+                                unicode(self.start))
 
     def total_time(self):
         return (self.end - self.start)
