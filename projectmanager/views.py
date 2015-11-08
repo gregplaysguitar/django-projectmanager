@@ -192,7 +192,7 @@ def _projecttime_to_json(projecttime):
         '_project_id': task.project_id,
         'start': projecttime.start.strftime("%Y-%m-%d %H:%M"),
         'end': projecttime.end.strftime("%Y-%m-%d %H:%M"),
-        'title': "{0}: {1}".format(projecttime.project, projecttime.task.task),
+        'title': u"{0}: {1}".format(projecttime.project, projecttime.task.task),
         # 'allDay': False,
         # 'url': '',
     }
