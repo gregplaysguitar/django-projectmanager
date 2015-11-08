@@ -1,22 +1,24 @@
-{% extends "admin/base_site.html" %}
+{% extends "base.html" %}
 
-{% block title %}Tasks for {% firstof project "all projects" %} &mdash; {{block.super}}{% endblock %}
+{% block title %}
+	Tasks for {{ project or "all projects" }} &mdash; {{ super() }}
+{% endblock %}
 
 
 {% block header %}
-Tasks for {% firstof project "all projects" %}
+	Tasks for {{ project or "all projects" }}
 {% endblock %}
 
 
 {% block content %}
 <div class="tasks-leftcol">
 	<div class="pending-tasks">
-		<h3>Pending tasks for {% firstof project "all projects" %}</h3>
+		<h3>Pending tasks for {{ project or "all projects" }}</h3>
 		<form action="." method="post">
-		{% csrf_token %}
-		
+		<input type="hidden" name="csrfmiddlewaretoken" value="{{ csrf_token }}">
+
 		{{ task_list_formset.management_form }}
-		
+
 		<ul>
 			{% for form in task_list_formset.forms %}
 			 <li>
@@ -33,14 +35,12 @@ Tasks for {% firstof project "all projects" %}
 					{% if form.instance.estimated_hours %}
 					<strong>{{ form.instance.estimated_hours }}h</strong>,
 					{% endif %}
-					added {{ form.instance.creation_date|date:"d M y" }}
+					added {{ form.instance.created|date("d M y") }}
 					<a href="/projectmanager/task/{{ form.instance.id }}/">edit</a>
 				</span>
-		        {% if form.instance.comments %}
-		        <div class="comments">{{ form.instance.comments|urlize|linebreaks }}</div>
-		        {% endif %}
+
 			</li>
-			{% empty %}
+			{% else %}
 			<li>No tasks found</li>
 			{% endfor %}
 		</ul>
@@ -48,13 +48,13 @@ Tasks for {% firstof project "all projects" %}
 		</form>
 	</div>
 
-	
+
 	<div class="add-task form">
 		<h3>Add a task</h3>
 		<ul>
 			<form method="post" action=".">
-				{% csrf_token %}
-			
+				<input type="hidden" name="csrfmiddlewaretoken" value="{{ csrf_token }}">
+
 				{{ task_form.as_ul }}
 				<li>
 					<input type="submit" value="Add" class="submit">
@@ -63,38 +63,38 @@ Tasks for {% firstof project "all projects" %}
 		</ul>
 	</div>
 
-	
-	<div class="completed-tasks">	
+
+	<div class="completed-tasks">
 		{% if project %}
 		<h3>Completed tasks for {{ project }}</h3>
 		<ul>
 			{% for task in completed_tasks %}
 			<li title="{{ task.task }}">
-				{{ task.task|truncatewords:"15" }}
+				{{ task.task|truncate(15) }}
 				<span class="meta">
                     {% if task.estimated_hours %}
                     <strong>{{ task.estimated_hours }}h</strong>,
                     {% endif %}
-                    completed {{ task.completion_date|date:"d M y" }}
+                    completed {{ task.completion_date|date("d M y") }}
                     <a href="/projectmanager/task/{{ task.id }}/">edit</a>
 				</span>
 			</li>
-			{% empty %}
+			{% else %}
 			<li>No tasks found</li>
 			{% endfor %}
 		</ul>
 		{% else %}
 		<h3>Last 10 completed tasks</h3>
 		<ul>
-			{% for task in completed_tasks|slice:":10" %}
+			{% for task in completed_tasks[:10] %}
 			<li>
-				{{ task.task|truncatewords:"15" }}
+				{{ task.task|truncate(15) }}
 				<span class="meta">
-                     completed {{ task.completion_date|date:"d M y" }}
+                     completed {{ task.completion_date|date("d M y") }}
                     <a href="/projectmanager/task/{{ task.id }}/">edit</a>
                 </span>
 			</li>
-			{% empty %}
+			{% else %}
 			<li>No tasks found</li>
 			{% endfor %}
 		</ul>
@@ -105,11 +105,11 @@ Tasks for {% firstof project "all projects" %}
 <div class="sidebar tasks-rightcol">
 	<h3>Filter by project</h3>
 	<ul class="project list">
-		<li><a href="{% url 'projectmanager.views.tasks' 'all' %}">All</a></li>
+		<li><a href="{{ url('projectmanager_tasks', 'all') }}">All</a></li>
 		{% for proj in project_list %}
-			{% with pending=proj.pending_tasks.count %}
+			{% set pending=proj.pending_tasks.count %}
 			<li class="{% if proj.hidden %} hidden{% endif %}">
-				<a href="{% url 'projectmanager.views.tasks' proj.pk %}"
+				<a href="{{ url('projectmanager_tasks', proj.pk) }}"
 				   class="{% if proj == project %}current{% endif %}">
 					{{ proj }}
 					{% if pending %}
@@ -117,7 +117,6 @@ Tasks for {% firstof project "all projects" %}
 					{% endif %}
 				</a>
 			</li>
-			{% endwith %}
 		{% endfor %}
 	</ul>
 </div>
@@ -125,7 +124,7 @@ Tasks for {% firstof project "all projects" %}
 
 
 {% block extrastyle %}
-{{ block.super }}
+{{ super() }}
 
 <script type="text/javascript">
 $(function() {

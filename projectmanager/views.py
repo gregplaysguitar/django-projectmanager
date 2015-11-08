@@ -5,52 +5,55 @@ from datetime import datetime, timedelta
 
 from django.db.models import Q
 from django.views.decorators.http import require_POST
-from django.shortcuts import render_to_response, get_object_or_404, redirect
-from django.http import HttpResponse
-from datetime import datetime
+from django.shortcuts import get_object_or_404, redirect
+from django.http import HttpResponse, HttpResponseBadRequest, \
+    HttpResponseForbidden
 from django.contrib.auth.decorators import login_required
 from django.forms.models import modelformset_factory
 from django.template.loader import get_template
-from django.template import Context, RequestContext
 from xhtml2pdf import pisa
 
 from .forms import ProjectTimeForm, AddTaskForm
 from .models import Project, ProjectTime, Task, Invoice
+from .util import render_to_response
 
 
 class JsonResponse(HttpResponse):
     def __init__(self, data):
-        super(JsonResponse, self).__init__(json.dumps(data), 
+        super(JsonResponse, self).__init__(json.dumps(data),
                                            content_type="application/json")
 
 
 @login_required
-def project_time_calendar(request):
+def calendar(request):
     # get latest ProjectTime and use its project as the default
-    latest_time = ProjectTime.objects.all().order_by('-start').first()    
+    latest_time = ProjectTime.objects.all().order_by('-created').first()
     if latest_time:
         initial = {'project': latest_time.project.id}
     else:
         initial = {}
     time_form = ProjectTimeForm(initial=initial)
-    
-    return render_to_response('projectmanager/calendar.html', 
-        RequestContext(request, {
-            'time_form': time_form,
-            'has_permission': True,
-            'user': request.user,
-        }))
+
+    return render_to_response('projectmanager/calendar.html', {
+        'time_form': time_form,
+        'has_permission': True,
+        'user': request.user,
+    }, request)
 
 
 TASK_FIELDS = ('id', 'task', 'completed')
-@login_required
+
+
 def project_task_data(request):
+    if not request.user.is_authenticated():
+        return HttpResponseForbidden('Permission denied')
+
     # retrieve tasks that are incomplete or completed in the last day
     cutoff = datetime.now() - timedelta(1)
     f = Q(completed=False) | Q(completion_date__gt=cutoff)
     qs = Task.objects.filter(f).order_by('project_id') \
              .values_list('project_id', *TASK_FIELDS)
-             
+
     data = {}
     for task in qs:
         if not data.get(task[0]):
@@ -59,15 +62,63 @@ def project_task_data(request):
     return JsonResponse(data)
 
 
-@login_required
+@require_POST
+def api_projecttime(request, pk=None):
+    if not request.user.is_authenticated():
+        return HttpResponseForbidden('Permission denied')
+
+    if pk:
+        projecttime = get_object_or_404(
+            ProjectTime.objects.for_user(request.user), pk=pk)
+    else:
+        projecttime = ProjectTime(user=request.user)
+
+    form = ProjectTimeForm(request.POST, instance=projecttime)
+    if form.is_valid():
+        form.save()
+        return JsonResponse({
+            'success': True,
+            'event': _projecttime_to_json(projecttime),
+        })
+    else:
+        return JsonResponse({
+            'success': False,
+            'errors': form.errors,
+        })
+
+    # for param in ('start', 'end', 'description', 'task_id'):
+    #     val = request.POST.get(param)
+    #     if val:
+    #         setattr(projecttime, param, val)
+    #
+    # try:
+    #     projecttime.full_clean()
+    # except ValidationError, e:
+    #     return {
+    #         'success': False,
+    #         'errors': e.message_dict,
+    #     }
+    #
+    # projecttime.save()
+    # return {
+    #   'success': True,
+    # }
+
+
 def api_project_time_list(request):
-    date_start = datetime.fromtimestamp(int(request.GET['start']))
-    date_end = datetime.fromtimestamp(int(request.GET['end']))
+    if not request.user.is_authenticated():
+        return HttpResponseForbidden('Permission denied')
+
+    date_f = '%Y-%m-%d'
+    try:
+        date_start = datetime.strptime(request.GET.get('start', ''), date_f)
+        date_end = datetime.strptime(request.GET.get('end', ''), date_f)
+    except ValueError:
+        return HttpResponseBadRequest(u'Invalid start or end date')
 
     time_qs = ProjectTime.objects.for_user(request.user).filter(
-        Q(start__range=(date_start, date_end)) |          # start today
-        Q(end__range=(date_start, date_end)) |            # working over midnight
-        (Q(start__lt=date_start) & Q(end__gt=date_end))   # spanned multiple days
+        start__lt=date_end,
+        end__gt=date_start
     ).order_by('start')
 
     json_data = []
@@ -77,25 +128,34 @@ def api_project_time_list(request):
     return JsonResponse(json_data)
 
 
-@login_required
 @require_POST
 def api_project_time_add(request):
-    form = ProjectTimeForm(request.POST)
+    if not request.user.is_authenticated():
+        return HttpResponseForbidden('Permission denied')
+
+    form = ProjectTimeForm(request.POST,
+                           instance=ProjectTime(user=request.user))
     return _api_project_time_form(form)
 
 
-@login_required
 @require_POST
 def api_project_time_edit(request):
-    time = ProjectTime.objects.get(pk=int(request.POST['id']))
+    if not request.user.is_authenticated():
+        return HttpResponseForbidden('Permission denied')
+
+    qs = ProjectTime.objects.for_user(request.user)
+    time = qs.get(pk=int(request.POST['id']))
     form = ProjectTimeForm(request.POST, instance=time)
     return _api_project_time_form(form)
 
 
-@login_required
 @require_POST
 def api_project_time_move(request):
-    time = ProjectTime.objects.get(pk=int(request.POST['id']))
+    if not request.user.is_authenticated():
+        return HttpResponseForbidden('Permission denied')
+
+    qs = ProjectTime.objects.for_user(request.user)
+    time = qs.get(pk=int(request.POST['id']))
     # be more relaxed with validation, other fields don't have to be validated.
     time.start = datetime.strptime(request.POST['start'], "%Y-%m-%d %H:%M")
     time.end = datetime.strptime(request.POST['end'], "%Y-%m-%d %H:%M")
@@ -121,27 +181,30 @@ def _api_project_time_form(form):
 
 
 def _projecttime_to_json(projecttime):
+
+    # import time; time.sleep(1)
+
     task = projecttime.task
-    return  {
+    return {
         '_id': projecttime.id,
         "_description": projecttime.description,
         '_task': [getattr(task, f) for f in TASK_FIELDS],
         '_project_id': task.project_id,
         'start': projecttime.start.strftime("%Y-%m-%d %H:%M"),
         'end': projecttime.end.strftime("%Y-%m-%d %H:%M"),
-        'title': "{0}: {1}".format(projecttime.project, projecttime.task.task),
-        'allDay': False,
-        #'url': '',
+        'title': u"{0}: {1}".format(projecttime.project, projecttime.task.task),
+        # 'allDay': False,
+        # 'url': '',
     }
 
 
 @login_required
 def tasks(request, project_pk=None):
     task_qs = Task.objects.for_user(request.user)
-    
+
     completed_tasks = task_qs.filter(completed=True).order_by('-completion_date')
-    pending_tasks = task_qs.filter(completed=False).order_by('creation_date')
-    project_list = Project.objects.for_user(request.user).filter(completed=False)
+    pending_tasks = task_qs.filter(completed=False).order_by('created')
+    project_list = Project.objects.for_user(request.user).filter(archived=False)
 
     if not project_pk and 'tasks_latest_project_pk' in request.session:
         return redirect(tasks, request.session['tasks_latest_project_pk'])
@@ -185,24 +248,15 @@ def tasks(request, project_pk=None):
         'has_permission': True,
         'user': request.user,
     }
-    return render_to_response('projectmanager/tasks.html', 
-                              RequestContext(request, data))
-
-
-@login_required
-def create_invoice_for_project(request, project_id):
-    project = get_object_or_404(Project, pk=project_id)
-    invoice = project.create_invoice()
-    return redirect('projectmanager.views.invoice', invoice.id)
+    return render_to_response('projectmanager/tasks.html', data, request)
 
 
 def render_to_pdf(template_src, context_dict):
     template = get_template(template_src)
-    context = Context(context_dict)
-    html  = template.render(context)
+    html = template.render(context_dict)
     result = StringIO()
     status = pisa.CreatePDF(StringIO(html.encode("UTF-8")), dest=result)
-    
+
     # pdf = pisa.pisaDocument(StringIO(html.encode("UTF-8")), result)
     if status.err:
         return HttpResponse(u"Error creating pdf")
@@ -211,15 +265,16 @@ def render_to_pdf(template_src, context_dict):
 
 
 @login_required
-def invoice(request, invoice_id, type='html'):
+def invoice(request, invoice_id, output='html'):
     data = {
         'invoice': get_object_or_404(Invoice, pk=invoice_id),
-        'type': type,
+        'type': output,
     }
-    if type == 'pdf':
-        return render_to_pdf('projectmanager/pdf/invoice.html', data)
+    template_name = 'projectmanager/pdf/invoice.html'
+    if output == 'pdf':
+        return render_to_pdf(template_name, data)
     else:
-        return render_to_response('projectmanager/pdf/invoice.html', data, context_instance=RequestContext(request))
+        return render_to_response(template_name, data, request)
 
 
 @login_required
