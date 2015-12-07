@@ -27,12 +27,13 @@ class JsonResponse(HttpResponse):
 @login_required
 def calendar(request):
     # get latest ProjectTime and use its project as the default
-    latest_time = ProjectTime.objects.all().order_by('-created').first()
+    latest_time = ProjectTime.objects.for_user(request.user) \
+                             .order_by('-created').first()
     if latest_time:
         initial = {'project': latest_time.project.id}
     else:
         initial = {}
-    time_form = ProjectTimeForm(initial=initial)
+    time_form = ProjectTimeForm(initial=initial, request=request)
 
     return render_to_response('projectmanager/calendar.html', {
         'time_form': time_form,
@@ -51,7 +52,7 @@ def project_task_data(request):
     # retrieve tasks that are incomplete or completed in the last day
     cutoff = datetime.now() - timedelta(1)
     f = Q(completed=False) | Q(completion_date__gt=cutoff)
-    qs = Task.objects.filter(f).order_by('project_id') \
+    qs = Task.objects.for_user(request.user).filter(f).order_by('project_id') \
              .values_list('project_id', *TASK_FIELDS)
 
     data = {}
@@ -73,7 +74,7 @@ def api_projecttime(request, pk=None):
     else:
         projecttime = ProjectTime(user=request.user)
 
-    form = ProjectTimeForm(request.POST, instance=projecttime)
+    form = ProjectTimeForm(request.POST, instance=projecttime, request=request)
     if form.is_valid():
         form.save()
         return JsonResponse({
@@ -133,7 +134,7 @@ def api_project_time_add(request):
     if not request.user.is_authenticated():
         return HttpResponseForbidden('Permission denied')
 
-    form = ProjectTimeForm(request.POST,
+    form = ProjectTimeForm(request.POST, request=request,
                            instance=ProjectTime(user=request.user))
     return _api_project_time_form(form)
 
@@ -145,7 +146,7 @@ def api_project_time_edit(request):
 
     qs = ProjectTime.objects.for_user(request.user)
     time = qs.get(pk=int(request.POST['id']))
-    form = ProjectTimeForm(request.POST, instance=time)
+    form = ProjectTimeForm(request.POST, instance=time, request=request)
     return _api_project_time_form(form)
 
 
@@ -232,12 +233,14 @@ def tasks(request, project_pk=None):
         task_list_formset = TaskListFormSet(queryset=pending_tasks, prefix='task_list')
 
     if request.POST and 'addtask-task' in request.POST:
-        task_form = AddTaskForm(request.POST, prefix='addtask')
+        task_form = AddTaskForm(request.POST, prefix='addtask',
+                                request=request)
         if task_form.is_valid():
             task = task_form.save()
             return redirect(request.path_info)
     else:
-        task_form = AddTaskForm(prefix='addtask', initial=initial)
+        task_form = AddTaskForm(prefix='addtask', initial=initial,
+                                request=request)
 
     data = {
         'project': project,
@@ -269,6 +272,7 @@ def invoice(request, invoice_id, output='html'):
     data = {
         'invoice': get_object_or_404(Invoice, pk=invoice_id),
         'type': output,
+        'user': request.user,
     }
     template_name = 'projectmanager/pdf/invoice.html'
     if output == 'pdf':

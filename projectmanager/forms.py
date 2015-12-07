@@ -4,8 +4,8 @@ from django import forms
 from .models import Project, ProjectTime, Task
 
 
-def get_project_choices():
-    qs = Project.objects.filter(archived=False)
+def get_project_choices(user):
+    qs = Project.objects.filter(archived=False).for_user(user)
     recent = qs.filter(task__projecttime__created__gte= \
                        datetime.now() - timedelta(7)).distinct()[:5]
     other = qs.exclude(pk__in=(p.pk for p in recent))
@@ -14,7 +14,7 @@ def get_project_choices():
 
 
 class ProjectTimeForm(forms.ModelForm):
-    project = forms.ChoiceField(choices=get_project_choices())
+    project = forms.ChoiceField(choices=[])
     def clean_project(self):
         return Project.objects.get(pk=self.cleaned_data['project'])
 
@@ -32,8 +32,9 @@ class ProjectTimeForm(forms.ModelForm):
     completed = forms.BooleanField(required=False)
 
     def __init__(self, *args, **kwargs):
+        request = kwargs.pop('request')
         super(ProjectTimeForm, self).__init__(*args, **kwargs)
-        self['project'].field.choices = get_project_choices()
+        self['project'].field.choices = get_project_choices(request.user)
 
     class Meta:
         model = ProjectTime
@@ -64,8 +65,14 @@ class ProjectTimeForm(forms.ModelForm):
 
 
 class AddTaskForm(forms.ModelForm):
-    #task = forms.CharField()
-    project = forms.ModelChoiceField(queryset=Project.objects.filter(archived=False))
+    project = forms.ModelChoiceField(queryset=Project.objects.none())
+
     class Meta:
         model = Task
         exclude = ('completed', )
+
+    def __init__(self, *args, **kwargs):
+        request = kwargs.pop('request')
+        super(ProjectTimeForm, self).__init__(*args, **kwargs)
+        self['project'].field.choices = \
+            Project.objects.filter(archived=False).for_user(request.user)

@@ -1,18 +1,17 @@
 # -*- coding: utf-8 -*-
 
-import datetime, decimal
+import datetime
 import hashlib
-import calendar
 
 from django.db import models
 from django.db.models import F
 from django.conf import settings
 from django.core.cache import cache
 from django.core.exceptions import ValidationError
-from django.http import HttpResponseRedirect
-from django.db.models.signals import pre_save, post_save, post_init
+from django.db.models.signals import post_save
 from django.contrib.auth.models import User
-from django.db.models import Q, Sum
+
+from jinja2 import Template
 
 from . import settings as pm_settings
 
@@ -34,7 +33,7 @@ def cached_method(duration=86400):
         def inner(obj, *args, **kwargs):
             key = cache_key(obj, func.__name__, *args, **kwargs)
             result = cache.get(key)
-            if result == None:
+            if result is None:
                 result = func(obj, *args, **kwargs)
                 cache.set(key, result, duration)
             return result
@@ -46,6 +45,7 @@ def cached_method(duration=86400):
 
 def default_manager_from_qs(qs_cls, **kwargs):
     related = kwargs.pop('use_for_related_fields', True)
+
     class _Manager(models.Manager.from_queryset(qs_cls)):
         use_for_related_fields = related
     return _Manager
@@ -61,9 +61,16 @@ class OrganisationQuerySet(models.QuerySet):
 
 class Organisation(models.Model):
     name = models.CharField(max_length=200)
+    gst_number = models.CharField(max_length=50, blank=True, default='')
+    payment_details = models.TextField(
+        blank=True, default='', help_text="Appears at bottom of invoice.")
     users = models.ManyToManyField(User, through='OrganisationUser')
 
     objects = default_manager_from_qs(OrganisationQuerySet)()
+
+    def payment_details_for(self, invoice):
+        # TODO is this safe??
+        return Template(self.payment_details).render({'invoice': invoice})
 
     def __unicode__(self):
         return self.name
