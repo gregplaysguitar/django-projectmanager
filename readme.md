@@ -1,3 +1,8 @@
+
+This project is no longer maintained. Check out https://leaftimesheet.co - the time tracking application which grew out of this codebase.
+
+---
+
 A small time tracking and task management application designed for individuals. This 
 project was originally built for my own personal use. Feel free to make suggestions or 
 report issues.
