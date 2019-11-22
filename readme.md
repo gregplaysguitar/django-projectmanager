@@ -1,5 +1,5 @@
 
-This project is no longer maintained. Check out https://leaftimesheet.co - the time tracking application which grew out of this codebase.
+This project is no longer maintained. Check out https://timesheet.gregbrown.co - the time tracking application which grew out of this codebase.
 
 ---
 
